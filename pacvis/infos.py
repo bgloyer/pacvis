@@ -2,28 +2,31 @@ from itertools import groupby
 import math
 import re
 
-import pyalpm
-import pycman
+from .portagetree import PkgInfo, PortageTree
 
 from .console import start_message, append_message, print_message
 
 
+
 class DbInfo:
     def __init__(self):
-        self.handle = pycman.config.init_with_config("/etc/pacman.conf")
-        self.localdb = self.handle.get_localdb()
-        self.syncdbs = self.handle.get_syncdbs()
-        self.packages = self.localdb.pkgcache
+        self.handle = {} #pycman.config.init_with_config("/etc/pacman.conf")
+        self.localdb = {"xxxxx"} #self.handle.get_localdb()
+        self.syncdbs = {} #self.handle.get_syncdbs()
+        self.packages = {}  #{PkgInfo("pppp", "dbinfo") } #self.localdb.pkgcache
         self.all_pkgs = {}
         self.groups = {}
         self.repos = {}
         self.vdeps = {}
-        self.repo_list = [x.name for x in self.syncdbs]
-        local = self.localdb.name
+        self.repo_list = [] #[x.name for x in self.syncdbs]
+        local = "XXXX" #self.localdb.name
         self.repo_list.append(local)
         self.repos[local] = RepoInfo(local, self)
-        print_message("Enabled repos: %s" %
-                      ", ".join(db.name for db in self.syncdbs))
+#        print_message("Enabled repos: %s" %
+#                      ", ".join(db.name for db in self.syncdbs))
+#        tree = PortageTree(self)
+#        self.packages = tree.packages()
+
         print_message("Repo_list repos: %s" % ", ".join(self.repo_list))
 
     def find_syncdb(self, pkgname):
@@ -54,6 +57,11 @@ class DbInfo:
         return pkg.name
 
     def find_all(self, showallvdeps):
+        tree = PortageTree(self)
+        self.packages = tree.packages()
+        return self.all_pkgs
+
+    '''
         for pkg in self.packages:
             PkgInfo(pkg.name, self)
         for pkg in self.all_pkgs.values():
@@ -71,8 +79,7 @@ class DbInfo:
                         self.repos[pkg.repo].pkgs.remove(pkg.name)
                     del self.all_pkgs[pkg.name]
                     del self.vdeps[pkg.name]
-        return self.all_pkgs
-
+'''
     def find_circles(self):
         """ https://zh.wikipedia.org/wiki/Tarjan%E7%AE%97%E6%B3%95 """
         stack = list()
@@ -209,7 +216,7 @@ class DbInfo:
                     remove_pkg(dep)
 
         remove_pkg(pkg.name)
-        pkg.csize = sum(self.get(pkg).isize for pkg in removing_pkg)
+        pkg.csize = 77777 #sum(self.get(pkg).isize for pkg in removing_pkg)
         append_message("csize %s: %d" % (pkg.name, pkg.csize))
         return pkg.csize
 
@@ -234,7 +241,7 @@ class DbInfo:
                 continue
             if all(dep in removing_pkg for dep in apkg.requiredby):
                 remove_pkg(apkg.name)
-        pkg.cssize = sum(self.get(pkg).isize for pkg in removing_pkg)
+        pkg.cssize = 88888 #sum(self.get(pkg).isize for pkg in removing_pkg)
         append_message("cssize %s: %d" % (pkg.name, pkg.cssize))
         return pkg.cssize
 
@@ -261,25 +268,25 @@ class DbInfo:
         self.all_pkgs[pkg].requiredby.append(name)
         return name
 
-
+"""
 class PkgInfo:
     def __init__(self, name, dbinfo):
         self.name = name
-        self.pkg = dbinfo.localdb.get_pkg(name)
+        self.pkg = "XxXx" #dbinfo.localdb.get_pkg(name)
         dbinfo.all_pkgs[name] = self
         self.deps = []
         self.requiredby = []
         self.optdeps = []
         self.level = 1
         self.circledeps = []
-        self.explicit = self.pkg.reason == 0
-        self.isize = self.pkg.isize
-        self.desc = self.pkg.desc
-        self.version = self.pkg.version
-        self.repo = dbinfo.find_syncdb(self.name)
-        self.groups = self.pkg.groups
-        self.provides = [dbinfo.find_vdep(pro, self.name)
-                         for pro in self.pkg.provides]
+        self.explicit = 0 == 0 #self.pkg.reason == 0
+        self.isize = 56565 #self.pkg.isize
+        self.desc = "desc" #self.pkg.desc
+        self.version = "v1" #self.pkg.version
+        self.repo = "pkginfoRepo" #dbinfo.find_syncdb(self.name)
+        self.groups = {} #self.pkg.groups
+        self.provides = [] # [dbinfo.find_vdep(pro, self.name)
+##                         for pro in self.pkg.provides]
         for grp in self.groups:
             if grp in dbinfo.groups:
                 dbinfo.groups[grp].add_pkg(self.name)
@@ -288,18 +295,19 @@ class PkgInfo:
                 dbinfo.groups[grp].add_pkg(self.name)
 
     def find_dependencies(self, dbinfo):
-        for dep in self.pkg.depends:
-            dependency = dbinfo.resolve_dependency(dep)
-            if dependency in dbinfo.all_pkgs:
-                self.deps.append(dependency)
-                dbinfo.get(dependency).requiredby.append(self.name)
-        for dep in self.pkg.optdepends:
-            depname = dep.split(":")[0]
-            resolved = dbinfo.resolve_dependency(depname)
-            if resolved is not None:
-                self.optdeps.append(resolved)
+        pass
+#        for dep in self.pkg.depends:
+#            dependency = dbinfo.resolve_dependency(dep)
+#            if dependency in dbinfo.all_pkgs:
+#                self.deps.append(dependency)
+#                dbinfo.get(dependency).requiredby.append(self.name)
+#        for dep in self.pkg.optdepends:
+#            depname = dep.split(":")[0]
+#            resolved = dbinfo.resolve_dependency(depname)
+#            if resolved is not None:
+#                self.optdeps.append(resolved)
         # self.requiredby.extend(self.pkg.compute_requiredby())
-
+"""
 
 class GroupInfo (PkgInfo):
     def __init__(self, name, dbinfo):
