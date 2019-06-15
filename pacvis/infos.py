@@ -45,6 +45,9 @@ class DbInfo:
         return repo
 
     def get(self, pkgname):
+        if not pkgname in self.all_pkgs:
+##            print(f'MIssing {pkgname}')
+            return self.all_pkgs['@world'] ##XXXX
         return self.all_pkgs[pkgname]
 
     def resolve_dependency(self, dep):
