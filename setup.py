@@ -7,8 +7,8 @@ setup(name='PacVis',
       description='Visualize pacman local database using Vis.js,' +
                   ' inspired by pacgraph',
       author='Jiachen Yang',
-      author_email='farseerfc@archlinuxcn.org',
-      url='https://pacvis.farseerfc.me/',
+      author_email='',
+      url='https://github.com/bgloyer/pacvis',
       packages=find_packages(),
       package_data={'pacvis': ['templates/index.template.html',
                                'static/*'
