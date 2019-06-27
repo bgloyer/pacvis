@@ -11,6 +11,7 @@ from _emerge.depgraph import backtrack_depgraph, depgraph, resume_depgraph
 from _emerge.actions import load_emerge_config
 from _emerge.main import parse_opts
 from _emerge.Package import Package
+from _emerge.create_depgraph_params import create_depgraph_params
 from portage._sets.files import StaticFileSet, WorldSelectedPackagesSet
 
 from .console import start_message, append_message, print_message
@@ -26,14 +27,14 @@ def printpkg(pkginfo):
 
 
 
-def buildpackagetree(dbinfo, atoms, digraph, node):
+def buildpackagetree(dbinfo, atoms, digraph, node, level = 1):
 ##    print(type(node))
 ##    print(node.cpv)
     if isinstance(node, Package):
         nodename = node.cpv
         reponame = node.repo
         if nodename in dbinfo.all_pkgs:
-            print(f'alread have{nodename}')
+##            print(f'alread have{nodename}')
             return dbinfo.all_pkgs[nodename]
     else:
         nodename = f'{node}'
@@ -43,6 +44,10 @@ def buildpackagetree(dbinfo, atoms, digraph, node):
 ##    print(nodename)
     pkg = PkgInfo(nodename, dbinfo)
     pkg.repo=reponame
+    selected = nodename == '@selected'
+    if nodename == '@system':
+        level = 30
+    pkg.level = level
     atoms.append(pkg)
     for child in digraph.child_nodes(node):
         if isinstance(child, Package):
@@ -53,14 +58,15 @@ def buildpackagetree(dbinfo, atoms, digraph, node):
         pkg.deps.append(childname)
 ##        print(childname)
 ##        print(pkg.deps)
-        child_pkg = buildpackagetree(dbinfo, atoms, digraph, child)
+        child_pkg = buildpackagetree(dbinfo, atoms, digraph, child, level + 1)
         if child_pkg is not None:
-            print("child_pkg")
-            print(nodename)
+            child_pkg.explicit = selected
+##            print("child_pkg")
+##            print(nodename)
             child_pkg.requiredby.append(nodename)
         else:
             print(f'zzzzz{child_pkg}')
-    printpkg(pkg)
+##    printpkg(pkg)
     return pkg
     
 class PkgInfo:
@@ -83,9 +89,35 @@ class PkgInfo:
         pass
 ##        return deps
 
+def printDepgraph(depgraph):
+    print('depgraph:')
+    eroot = depgraph._frozen_config.roots[depgraph._frozen_config.target_root].root
+    dc_digraph = depgraph._dynamic_config.digraph
+    dc_digraph.debug_print()
+    ##    print(type(depgraph._frozen_config))
+    for key in depgraph._frozen_config.trees[eroot]:
+        v = depgraph._frozen_config.trees[eroot][key]
+        print(f'{key} : {type(v)}')
+##        for key2 in v:
+##            v2 = v[key2]
+##            print(f'{key2} : {type(v2)}')
+##            print(f'{key2} : {v2}')
+    vardb = depgraph._frozen_config.trees[eroot]['vartree'].dbapi
+    print(type(vardb))
+    print(len(vardb._cpv_map))
+    for pkg in vardb:
+        print(f'{type(pkg)} {pkg.cpv}')
+
+    portdb = depgraph._frozen_config.trees[eroot]['porttree']
+    allportnodes = portdb.getallnodes()
+    print(f'num nodes {len(allportnodes)}')
+    if len(allportnodes) > 0:
+        print(f'firstnode {allportnodes[0]}')
+
     
 class PortageTree:
     def __init__(self, dbinfo):
+        print("hereeeeeeeeeeeeeeee")
         myaction, myopts, myfiles = parse_opts(["-p", "--emptytree", "@world"])
         emerge_config = load_emerge_config(action=myaction, args=myfiles, opts=myopts)
 ##        emerge_config = load_emerge_config(action=myaction, args=myfiles, trees=trees, opts=myopts)
@@ -95,12 +127,19 @@ class PortageTree:
         myaction = emerge_config.action
         myfiles = emerge_config.args
         spinner = None
-        myparams = {} ##XXXX
-        
-        success, mydepgraph, favorites = backtrack_depgraph(
-				settings, trees, myopts, myparams, myaction, myfiles, spinner)
+
+        myparams = create_depgraph_params(myopts, "remove")
+        mydepgraph = depgraph(settings, trees, myopts, myparams, spinner)
+##        myparams = {} ##XXXX
+##        success, mydepgraph, favorites = backtrack_depgraph(
+##				settings, trees, myopts, myparams, myaction, myfiles, spinner)
 #        mydepgraph._dynamic_config.digraph.debug_print()
 
+        print(f'frozen trees: {len(mydepgraph._frozen_config.trees)}')
+##        printDepgraph(mydepgraph)
+        mydepgraph._complete_graph()
+##        mydepgraph._load_vdb()
+        printDepgraph(mydepgraph)
         
 
 

@@ -45,9 +45,6 @@ class DbInfo:
         return repo
 
     def get(self, pkgname):
-        if not pkgname in self.all_pkgs:
-##            print(f'MIssing {pkgname}')
-            return self.all_pkgs['@world'] ##XXXX
         return self.all_pkgs[pkgname]
 
     def resolve_dependency(self, dep):
@@ -60,8 +57,9 @@ class DbInfo:
         return pkg.name
 
     def find_all(self, showallvdeps):
-        tree = PortageTree(self)
-        self.packages = tree.packages()
+        if len(self.packages) == 0:
+            tree = PortageTree(self)
+            self.packages = tree.packages()
         return self.all_pkgs
 
     '''
@@ -114,21 +112,36 @@ class DbInfo:
         for pkg in self.all_pkgs:
             if pkg not in indexes:
                 strongconnect(pkg)
-
+        numcircles = 0
+        for pkg in self.all_pkgs:
+            circleLen = len(self.get(pkg).circledeps) 
+            if circleLen > 1:
+                numcircles = numcircles + 1
+                print (circleLen)
+        print(f'num cycles {numcircles}')
     def top_down_sort(self, usemagic, all_pkgs):
         remain_pkgs = set(all_pkgs)
+        cycle_check = set()
         start_message("Top-down sorting ")
+        # put all of the @system package on top
+        for pkg in all_pkgs:
+            pkginfo = self.get(pkg)
+            if '@system' in pkginfo.requiredby:
+                print(f'@system {pkginfo.name}')
+                pkginfo.level = 0
+                remain_pkgs.remove(pkg)
+                
         while len(remain_pkgs) > 0:
             pkg = remain_pkgs.pop()
             pkginfo = self.get(pkg)
             origin_level = pkginfo.level
-            append_message("%s %d (remaining %d)" % (pkg,
+            print("%s %d (remaining %d)" % (pkg,
                                                      origin_level,
                                                      len(remain_pkgs)))
             if len(all_pkgs.intersection(pkginfo.deps)) == 0:
                 if all([len(pkginfo.deps) == 0,
                         len(pkginfo.requiredby) == 0]):
-                    pkginfo.level = 0
+                    pkginfo.level = 1 ##  0
                 continue
             max_level = 1 + max(self.get(x).level
                                 for x in all_pkgs.intersection(pkginfo.deps))
@@ -141,10 +154,19 @@ class DbInfo:
                 new_level = max_level  # we may not need magic at all
             if new_level != origin_level:
                 pkginfo.level = new_level
-                remain_pkgs.update(
-                    all_pkgs.intersection(
+                #### XXXX loops here
+###                remain_pkgs.update(
+###                    all_pkgs.intersection(
+###                        set(pkginfo.requiredby).difference(
+###                            pkginfo.circledeps)))
+
+                update_set = all_pkgs.intersection(
                         set(pkginfo.requiredby).difference(
-                            pkginfo.circledeps)))
+                            pkginfo.circledeps))
+                cycle_check.update(update_set)
+                remain_pkgs.update(update_set.difference(cycle_check))
+                print(f' level {pkginfo.level} : {origin_level} len: {len(update_set)} rem: {len(remain_pkgs)} name {pkginfo.name}')
+
 
     def buttom_up_sort(self, all_pkgs):
         remain_pkgs = set(all_pkgs)

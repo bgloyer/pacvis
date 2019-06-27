@@ -16,13 +16,25 @@ function filesize(size) {
 
 function size2value(size) { return size==0 ? 12 : Math.sqrt(Math.sqrt(size)) / 5; }
 
+function createPkgButton(dep) {
+    return "<button class=\"mdl-button mdl-js-button mdl-js-ripple-effect\" onclick='document.getElementById(\"search\").value=\"" +
+               dep + "\";trysearch()'>" + dep + "</a> ";
+}
+
+function createSearchResultsDom(arr) {
+  let pkgsdom = "";
+  for (const pkg of arr) {
+    pkgsdom += createPkgButton(pkg.label)
+  }
+  return pkgsdom;
+}
+
 function createPkgListDom(list) {
   let depsdom = "";
   if (list == "")
     return "<i>Nothing</i>";
   for (let dep of list.split(", ")) {
-    depsdom += "<button class=\"mdl-button mdl-js-button mdl-js-ripple-effect\" onclick='document.getElementById(\"search\").value=\"" +
-               dep + "\";trysearch()'>" + dep + "</a> ";
+    depsdom += createPkgButton(dep)
   }
   return depsdom;
 }
@@ -167,21 +179,59 @@ function togglehide() {
   }
 }
 
-function trysearch() {
-  let pkgname = document.getElementById("search").value;
-  for (let node of nodes.get()) {
-    if (node.label == pkgname) {
-      network.selectNodes([ node.id ]);
-      selectPkg(node);
-      if (!node.hidden) {
+
+function selectAndUnhidePkg(node){
+    network.selectNodes([ node.id ]);
+    selectPkg(node);
+    if (!node.hidden) {
         network.focus(node.id, {
-          scale : Math.log(nodes.length) / 5,
-          locked : false,
-          animation : {duration : 300}
+            scale : Math.log(nodes.length) / 5,
+            locked : false,
+            animation : {duration : 300}
         });
-      }
     }
+}
+
+function trysearch() {
+    let pkgname = document.getElementById("search").value;
+    if(!pkgname || pkgname.length < 2){
+	return
+    }
+  let found = false;
+  for (let node of nodes.get()) {
+      if (node.label == pkgname) {
+	found = true;
+        selectAndUnhidePkg(node);
+      break;
+      }
   }
+    if (!found) { // look for a close match 
+	var pkgs = new Array(0)
+	for (let node of nodes.get()) {
+	    if (node.label && node.label.includes(pkgname)) {
+		pkgs.push(node);
+	    }
+	}
+	numPkgs = pkgs.length;
+	if(numPkgs == 0) {
+	    //  There is only one package so select it
+	    document.getElementById("searchresults").innerHTML = "<i>No matching packages</i>";"";
+	}
+	else if(numPkgs == 1) {
+	    //  There is only one package so select it
+	    selectAndUnhidePkg(pkgs[0]);
+	    document.getElementById("searchresults").innerHTML = "";
+	}
+    	else if(numPkgs < 100 ){
+	    // choose a package if there is more than one, cycle
+	    // and pick a different one.
+	    pkgs.sort()
+	    document.getElementById("searchresults").innerHTML = createSearchResultsDom(pkgs);
+	}
+	else {
+	    document.getElementById("searchresults").innerHTML = "<i>" + numPkgs + " matching packages</i>";
+	}
+    }
 }
 
 

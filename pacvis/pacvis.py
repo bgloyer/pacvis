@@ -58,7 +58,7 @@ class MainHandler(tornado.web.RequestHandler):
 
         nodes = []
         links = []
-
+        '''
         nodes.append({"id": 0,
                       "label": "level 1 group",
                       "level": 0,
@@ -75,7 +75,7 @@ class MainHandler(tornado.web.RequestHandler):
                       "groups": "",
                       "provides": "",
                       })
-
+'''
         ids = 1
         for pkg in sorted(dbinfo.all_pkgs.values(), key=lambda x: x.level):
             append_message("%s" % pkg.name)
