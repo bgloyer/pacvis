@@ -193,18 +193,16 @@ function selectAndUnhidePkg(node){
 }
 
 function trysearch() {
-    let pkgname = document.getElementById("search").value;
-    if(!pkgname || pkgname.length < 2){
-	return
-    }
+  let pkgname = document.getElementById("search").value;
   let found = false;
-  for (let node of nodes.get()) {
-      if (node.label == pkgname) {
-	found = true;
-        selectAndUnhidePkg(node);
-      break;
-      }
-  }
+//  for (let node of nodes.get()) {
+//      if (node.label == pkgname) {
+//	// there is an exact match so select the package
+//	found = true;
+//        selectAndUnhidePkg(node);
+//      break;
+//      }
+//  }
     if (!found) { // look for a close match 
 	var pkgs = new Array(0)
 	for (let node of nodes.get()) {
@@ -214,7 +212,7 @@ function trysearch() {
 	}
 	numPkgs = pkgs.length;
 	if(numPkgs == 0) {
-	    //  There is only one package so select it
+	    //  There are no matching packages
 	    document.getElementById("searchresults").innerHTML = "<i>No matching packages</i>";"";
 	}
 	else if(numPkgs == 1) {
@@ -223,12 +221,12 @@ function trysearch() {
 	    document.getElementById("searchresults").innerHTML = "";
 	}
     	else if(numPkgs < 100 ){
-	    // choose a package if there is more than one, cycle
-	    // and pick a different one.
+	    // list all of the matching packages as clickable buttons
 	    pkgs.sort()
 	    document.getElementById("searchresults").innerHTML = createSearchResultsDom(pkgs);
 	}
 	else {
+	    // there are too many packages so only display the count
 	    document.getElementById("searchresults").innerHTML = "<i>" + numPkgs + " matching packages</i>";
 	}
     }
