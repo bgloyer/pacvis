@@ -88,6 +88,11 @@ class PkgInfo:
     def find_dependencies(self, pkg):
         pass
 ##        return deps
+    def is_virtual(self):
+        return self.name.startswith("virtual/")
+    def is_set(self):
+        return self.name.startswith("@")
+    
 
 def printDepgraph(depgraph):
     print('depgraph:')
@@ -118,7 +123,8 @@ def printDepgraph(depgraph):
 class PortageTree:
     def __init__(self, dbinfo):
         print("hereeeeeeeeeeeeeeee")
-        myaction, myopts, myfiles = parse_opts(["-p", "--emptytree", "@world"])
+#        myaction, myopts, myfiles = parse_opts(["-p", "--emptytree", "@world"])
+        myaction, myopts, myfiles = parse_opts(["-p", "@world"])
         emerge_config = load_emerge_config(action=myaction, args=myfiles, opts=myopts)
 ##        emerge_config = load_emerge_config(action=myaction, args=myfiles, trees=trees, opts=myopts)
 ##       	adjust_configs(emerge_config.opts, emerge_config.trees)
@@ -146,8 +152,8 @@ class PortageTree:
         self.atoms = []
         mydigraph = mydepgraph._dynamic_config.digraph
 
-        for aaanode in mydigraph.allnodes():
-            print(type(aaanode))
+##        for aaanode in mydigraph.allnodes():
+##            print(type(aaanode))
             
         
         for rootnode in mydigraph.root_nodes():

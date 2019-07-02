@@ -82,6 +82,7 @@ class DbInfo:
                     del self.vdeps[pkg.name]
 '''
     def find_circles(self):
+        return ## XXXX try skipping
         """ https://zh.wikipedia.org/wiki/Tarjan%E7%AE%97%E6%B3%95 """
         stack = list()
         indexes = dict()
@@ -231,6 +232,9 @@ class DbInfo:
                 nextlevel = self.minimize_levels(all_pkgs, nextlevel)
 
     def calcCSize(self, pkg):
+        pkg.csize = 77777
+        return pkg.csize
+    ''' XXXX TODO keep this?
         removing_pkg = set()
 
         def remove_pkg(pkgname):
@@ -244,8 +248,11 @@ class DbInfo:
         pkg.csize = 77777 #sum(self.get(pkg).isize for pkg in removing_pkg)
         append_message("csize %s: %d" % (pkg.name, pkg.csize))
         return pkg.csize
-
+'''
     def calcCsSize(self, pkg):
+        pkg.cssize = 88888
+        return pkg.cssize
+    '''' XXXX keep this?
         removing_pkg = set()
         analyzing_pkg = set()
 
@@ -269,7 +276,7 @@ class DbInfo:
         pkg.cssize = 88888 #sum(self.get(pkg).isize for pkg in removing_pkg)
         append_message("cssize %s: %d" % (pkg.name, pkg.cssize))
         return pkg.cssize
-
+'''
     def calcSizes(self):
         start_message("Calculating csize ... ")
         maxCSize = max(self.calcCSize(pkg) for pkg in self.all_pkgs.values())

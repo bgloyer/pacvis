@@ -93,22 +93,28 @@ class MainHandler(tornado.web.RequestHandler):
                     #     continue
                 elif pkg.explicit:
                     group = "explicit"
-                nodes.append({"id": pkg.id,
-                              "label": pkg.name,
-                              "level": pkg.level,
-                              "group": group,
-                              "isize": pkg.isize,
-                              "csize": pkg.csize,
-                              "cssize": pkg.cssize,
-                              "deps": ", ".join(pkg.deps),
-                              "reqs": ", ".join(pkg.requiredby),
-                              "optdeps": ", ".join(pkg.optdeps),
-                              "groups": ", ".join(pkg.groups),
-                              "provides": ", ".join(pkg.provides),
-                              "desc": pkg.desc,
-                              "version": pkg.version,
-                              "repo": pkg.repo,
-                              })
+                node = {"id": pkg.id,
+                        "label": pkg.name,
+                        "level": pkg.level,
+                        "group": group,
+                        "isize": pkg.isize,
+                        "csize": pkg.csize,
+                        "cssize": pkg.cssize,
+                        "deps": ", ".join(pkg.deps),
+                        "reqs": ", ".join(pkg.requiredby),
+                        "optdeps": ", ".join(pkg.optdeps),
+                        "groups": ", ".join(pkg.groups),
+                        "provides": ", ".join(pkg.provides),
+                        "desc": pkg.desc,
+                        "version": pkg.version,
+                        "repo": pkg.repo,
+                }
+                if pkg.is_virtual():
+                    node['shape'] = "triangleDown"
+                elif pkg.is_set():
+                    node['shape'] = "square"
+                
+                nodes.append(node)
         ids = 0
         for pkg in sorted(dbinfo.all_pkgs.values(), key=lambda x: x.level):
             if pkg.level < args.maxlevel:
@@ -121,9 +127,12 @@ class MainHandler(tornado.web.RequestHandler):
                     for dep in pkg.deps:
                         if dep not in pkg.circledeps:
                             if len(dbinfo.get(dep).requiredby) < args.maxreqs:
-                                links.append({"id": ids,
-                                              "from": pkg.id,
-                                              "to": dbinfo.get(dep).id})
+                                link = {"id": ids,
+                                        "from": pkg.id,
+                                        "to": dbinfo.get(dep).id}
+                                if pkg.level < dbinfo.get(dep).level:
+                                    link["color"] = "rgb(244,67,54,0.8)"
+                                links.append(link)
                                 ids += 1
                 for dep in pkg.circledeps:
                     if (pkg.id != dbinfo.get(dep).id):
