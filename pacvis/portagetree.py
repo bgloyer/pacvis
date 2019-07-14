@@ -179,6 +179,12 @@ class PortageTree:
             ##worldpkg = dbinfo.all_pkgs[worldatom.cpv]
             ##worldpkg.explicit = true
 
+        # sort the depenent packages
+        for pkg in self.atoms:
+            pkg.deps.sort()
+            pkg.requiredby.sort()
+            
+            
     def packages(self):
         return self.atoms
     
