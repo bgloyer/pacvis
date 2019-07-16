@@ -207,6 +207,50 @@ class DbInfo:
         return result
 
     def topology_sort(self, usemagic, aligntop, byrepos):
+        level = 1
+    ##    max_per_level = sqrt(len(self.all_pkgs))
+        found_level = set()
+        found_pkgs = set() ## the packages that have been assigned to a level
+        # find the top level packages that nothing depends on
+        found_level = list(filter(lambda p: len(self.get(p).requiredby) == 0,
+                                  self.all_pkgs))
+        next_deps = set()  ## the set of deps of found_pkgs that are not found
+        while True:
+            for found_pkg in map(lambda pkg_name: self.get(pkg_name), found_level):
+                found_pkg.level = level
+            level += 1
+            found_pkgs.update(found_level)
+            ##find the next level of deps
+            for found_pkg in map(lambda pkg_name: self.get(pkg_name), found_level):
+                next_deps.update(found_pkg.deps)
+
+            ## remove any already in the found set to protect from cycles
+            next_deps -= found_pkgs
+
+            ## find the package with the fewest number of dependacies outside
+            ## of the found set.  It would be 0 except for cycles
+            min_reqby = len(self.all_pkgs)
+            reqby_dict = {}
+            for dep_name in next_deps:
+                req_by = set(self.get(dep_name).requiredby)
+                req_by -= found_pkgs
+                num_req_by = len(req_by)
+                if num_req_by in reqby_dict:
+                    reqby_dict[num_req_by].append(dep_name)
+                else:
+                    reqby_dict[num_req_by] = [dep_name]
+                
+                min_reqby = min(min_reqby, num_req_by)
+
+            if not min_reqby in reqby_dict:
+                ## all package have been placed
+                break
+
+            found_level = reqby_dict[min_reqby]
+            print(f'level: {level} min_reqby: {min_reqby} num pkgs: {len(found_level)}')
+                         
+                         
+    def topology_sort_orig(self, usemagic, aligntop, byrepos):
         if not byrepos:
             all_pkgs = {x for x in self.all_pkgs}
             self.top_down_sort(usemagic, all_pkgs)

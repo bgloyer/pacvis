@@ -130,7 +130,7 @@ class MainHandler(tornado.web.RequestHandler):
                                 link = {"id": ids,
                                         "from": pkg.id,
                                         "to": dbinfo.get(dep).id}
-                                if pkg.level < dbinfo.get(dep).level:
+                                if pkg.level > dbinfo.get(dep).level:
                                     link["color"] = "rgb(244,67,54,0.8)"
                                 links.append(link)
                                 ids += 1

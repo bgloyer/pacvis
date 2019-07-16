@@ -27,9 +27,7 @@ def printpkg(pkginfo):
 
 
 
-def buildpackagetree(dbinfo, atoms, digraph, node, level = 1):
-##    print(type(node))
-##    print(node.cpv)
+def buildpackagetree(dbinfo, atoms, digraph, node):
     if isinstance(node, Package):
         nodename = node.cpv
         reponame = node.repo
@@ -41,13 +39,9 @@ def buildpackagetree(dbinfo, atoms, digraph, node, level = 1):
         print(f'{type(node)}:{nodename}')
         reponame = ""
         
-##    print(nodename)
     pkg = PkgInfo(nodename, dbinfo)
     pkg.repo=reponame
     selected = nodename == '@selected'
-    if nodename == '@system':
-        level = 30
-    pkg.level = level
     atoms.append(pkg)
     for child in digraph.child_nodes(node):
         if isinstance(child, Package):
@@ -56,9 +50,7 @@ def buildpackagetree(dbinfo, atoms, digraph, node, level = 1):
             childname = f'{child}'
             
         pkg.deps.append(childname)
-##        print(childname)
-##        print(pkg.deps)
-        child_pkg = buildpackagetree(dbinfo, atoms, digraph, child, level + 1)
+        child_pkg = buildpackagetree(dbinfo, atoms, digraph, child)
         if child_pkg is not None:
             child_pkg.explicit = selected
 ##            print("child_pkg")
@@ -107,11 +99,11 @@ def printDepgraph(depgraph):
 ##            v2 = v[key2]
 ##            print(f'{key2} : {type(v2)}')
 ##            print(f'{key2} : {v2}')
-    vardb = depgraph._frozen_config.trees[eroot]['vartree'].dbapi
-    print(type(vardb))
-    print(len(vardb._cpv_map))
-    for pkg in vardb:
-        print(f'{type(pkg)} {pkg.cpv}')
+##    vardb = depgraph._frozen_config.trees[eroot]['vartree'].dbapi
+##    print(type(vardb))
+##    print(len(vardb._cpv_map))
+##    for pkg in vardb:
+##        print(f'{type(pkg)} {pkg.cpv}')
 
     portdb = depgraph._frozen_config.trees[eroot]['porttree']
     allportnodes = portdb.getallnodes()
