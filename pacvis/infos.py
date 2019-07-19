@@ -208,7 +208,6 @@ class DbInfo:
 
     def topology_sort(self, usemagic, aligntop, byrepos):
         level = 1
-    ##    max_per_level = sqrt(len(self.all_pkgs))
         found_level = set()
         found_pkgs = set() ## the packages that have been assigned to a level
         # find the top level packages that nothing depends on
@@ -247,8 +246,62 @@ class DbInfo:
                 break
 
             found_level = reqby_dict[min_reqby]
-            print(f'level: {level} min_reqby: {min_reqby} num pkgs: {len(found_level)}')
-                         
+            if min_reqby > 0:
+                # find the package with the most deps
+                max_deps = -1
+                for dep_name in found_level:
+                    num_deps = len(self.get(dep_name).deps)
+                    if max_deps < num_deps:
+                        max_deps = num_deps
+                        max_dep_name = dep_name
+                found_level = [max_dep_name]
+                        
+            
+            ##print(f'level: {level} min_reqby: {min_reqby} num pkgs: {len(found_level)}')
+
+        self.compress_down()
+        self.adjust_up()
+
+    # move all the nodes down to the level above its highest dep
+    def compress_down(self):
+        sorted_pkgs = sorted(self.all_pkgs, key=lambda pkg: self.get(pkg).level, reverse=True)
+        if len(sorted_pkgs) < 1:
+            return
+        currlevel = self.get(sorted_pkgs[0]).level
+        for pkg_name in sorted_pkgs:
+            pkg = self.get(pkg_name)
+            min_dep_level = 999999
+            # find the highest dep below the node, skip ones
+            # above the node because they are in cycles
+            for pkg_dep in pkg.deps:
+                pkg_dep_level = self.get(pkg_dep).level
+                if pkg.level < pkg_dep_level:
+                    # count this dep because it is above pkg
+                    min_dep_level = min(min_dep_level, pkg_dep_level)
+            if min_dep_level != 999999:
+                assert pkg.level < min_dep_level #dont move the package up
+                pkg.level = min_dep_level - 1
+            else:
+                # there were no deps above this level
+                pkg.level = currlevel
+            currlevel = pkg.level
+
+        # shift them so the top node starts at 1
+        shift = currlevel - 1
+        for pkg_name in sorted_pkgs:
+            self.get(pkg_name).level -= shift
+
+    # adjust some packages up to make it look better
+    def adjust_up(self):
+        for pkg_name in self.all_pkgs:
+            pkg = self.get(pkg_name)
+            if len(pkg.deps) == 0:
+                # adjust package up that have no deps
+                max_reqby_level = -1
+                for req_name in pkg.requiredby:
+                    max_reqby_level = max(max_reqby_level, self.get(req_name).level)
+                if max_reqby_level != -1:
+                    pkg.level = min(pkg.level, max_reqby_level + 1)
                          
     def topology_sort_orig(self, usemagic, aligntop, byrepos):
         if not byrepos:
@@ -275,6 +328,7 @@ class DbInfo:
                     self.top_down_sort(usemagic, all_pkgs)
                 nextlevel = self.minimize_levels(all_pkgs, nextlevel)
 
+                
     def calcCSize(self, pkg):
         pkg.csize = 77777
         return pkg.csize
