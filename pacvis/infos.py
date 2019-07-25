@@ -210,25 +210,25 @@ class DbInfo:
     def topology_sort(self, usemagic, aligntop, byrepos):
         level = 1
         found_level = set()
-        found_pkgs = set() ## the packages that have been assigned to a level
+        found_pkgs = set() # the packages that have been assigned to a level
         # find the top level packages that nothing depends on
         found_level = list(filter(lambda p: len(self.get(p).requiredby) == 0,
                                   self.all_pkgs))
-        next_deps = set()  ## the set of deps of found_pkgs that are not found
+        next_deps = set()  # the set of deps of found_pkgs that are not found
         while True:
             for found_pkg in map(lambda pkg_name: self.get(pkg_name), found_level):
                 found_pkg.level = level
             level += 1
             found_pkgs.update(found_level)
-            ##find the next level of deps
+            # find the next level of deps
             for found_pkg in map(lambda pkg_name: self.get(pkg_name), found_level):
                 next_deps.update(found_pkg.deps)
 
-            ## remove any already in the found set to protect from cycles
+            # remove any already in the found set to protect from cycles
             next_deps -= found_pkgs
 
-            ## find the package with the fewest number of dependacies outside
-            ## of the found set.  It would be 0 except for cycles
+            # find the package with the fewest number of dependacies outside
+            # of the found set.  It would be 0 except for cycles
             min_reqby = len(self.all_pkgs)
             reqby_dict = {}
             for dep_name in next_deps:
@@ -243,7 +243,7 @@ class DbInfo:
                 min_reqby = min(min_reqby, num_req_by)
 
             if not min_reqby in reqby_dict:
-                ## all package have been placed
+                # all package have been placed
                 break
 
             found_level = reqby_dict[min_reqby]
@@ -258,7 +258,7 @@ class DbInfo:
                 found_level = [max_dep_name]
                         
             
-            ##print(f'level: {level} min_reqby: {min_reqby} num pkgs: {len(found_level)}')
+            #print(f'level: {level} min_reqby: {min_reqby} num pkgs: {len(found_level)}')
 
         self.compress_down()
         self.adjust_up()
@@ -280,7 +280,7 @@ class DbInfo:
                     # count this dep because it is above pkg
                     min_dep_level = min(min_dep_level, pkg_dep_level)
             if min_dep_level != 999999:
-                assert pkg.level < min_dep_level # dont move the package up
+                assert pkg.level < min_dep_level # don't move the package up
                 pkg.level = min_dep_level - 1
                 currlevel = pkg.level
             else:
