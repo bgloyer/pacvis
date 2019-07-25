@@ -1,7 +1,3 @@
-#from itertools import groupby
-#import math
-#import re
-
 import gentoolkit
 import portage
 portage._internal_caller = True
@@ -32,7 +28,7 @@ def buildpackagetree(dbinfo, atoms, digraph, node):
         nodename = node.cpv
         reponame = node.repo
         if nodename in dbinfo.all_pkgs:
-##            print(f'alread have{nodename}')
+#            print(f'alread have{nodename}')
             return dbinfo.all_pkgs[nodename]
     else:
         nodename = f'{node}'
@@ -58,9 +54,36 @@ def buildpackagetree(dbinfo, atoms, digraph, node):
             child_pkg.requiredby.append(nodename)
         else:
             print(f'zzzzz{child_pkg}')
-##    printpkg(pkg)
+#    printpkg(pkg)
     return pkg
-    
+
+def buildpkgtreeforupdate(dbinfo, digraph):
+    def ismergepkg(pkg):
+        ismerge = isinstance(pkg, Package) and pkg.operation == 'merge'
+        return ismerge
+    atomsdict = {}
+    for pkg in digraph.nodes:
+        mergechildren = []
+        for child in digraph.child_nodes(pkg):
+            if ismergepkg(pkg):
+                mergechildren.append(child)
+                if not child.cpv in atomsdict:
+                    atomsdict[child.cpv] = PkgInfo(child.cpv, dbinfo)
+        if len(mergechildren) > 0 or ismergepkg(pkg):
+            # add pkg if it or a child needs merged
+            if not pkg.cpv in atomsdict:
+                atomsdict[pkg.cpv] = PkgInfo(pkg.cpv, dbinfo)
+
+            # add links between parent and child
+            parent_pkg = atomsdict[pkg.cpv]
+            for mergechild in mergechildren:
+                # print(f'{pkg.cpv} -> {mergechild.cpv}')
+                child_pkg = atomsdict[mergechild.cpv]
+                parent_pkg.deps.append(mergechild.cpv)
+                child_pkg.requiredby.append(pkg.cpv)
+    return atomsdict.values()
+
+
 class PkgInfo:
     def __init__(self, name, dbinfo):
         self.desc = name
@@ -90,7 +113,7 @@ def printDepgraph(depgraph):
     print('depgraph:')
     eroot = depgraph._frozen_config.roots[depgraph._frozen_config.target_root].root
     dc_digraph = depgraph._dynamic_config.digraph
-    dc_digraph.debug_print()
+##    dc_digraph.debug_print()
     ##    print(type(depgraph._frozen_config))
     for key in depgraph._frozen_config.trees[eroot]:
         v = depgraph._frozen_config.trees[eroot][key]
@@ -104,7 +127,6 @@ def printDepgraph(depgraph):
 ##    print(len(vardb._cpv_map))
 ##    for pkg in vardb:
 ##        print(f'{type(pkg)} {pkg.cpv}')
-
     portdb = depgraph._frozen_config.trees[eroot]['porttree']
     allportnodes = portdb.getallnodes()
     print(f'num nodes {len(allportnodes)}')
@@ -114,8 +136,22 @@ def printDepgraph(depgraph):
     
 class PortageTree:
     def __init__(self, dbinfo):
-        print("hereeeeeeeeeeeeeeee")
-#        myaction, myopts, myfiles = parse_opts(["-p", "--emptytree", "@world"])
+
+        
+        self.atoms = []
+        self.load_installed_tree(dbinfo)
+#        self.load_update_tree(dbinfo)
+        
+
+        # sort the depenent packages
+        for pkg in self.atoms:
+            pkg.deps.sort()
+            pkg.requiredby.sort()
+
+        
+        return
+        
+        #        myaction, myopts, myfiles = parse_opts(["-p", "--emptytree", "@world"])
         myaction, myopts, myfiles = parse_opts(["-p", "@world"])
         emerge_config = load_emerge_config(action=myaction, args=myfiles, opts=myopts)
 ##        emerge_config = load_emerge_config(action=myaction, args=myfiles, trees=trees, opts=myopts)
@@ -137,7 +173,7 @@ class PortageTree:
 ##        printDepgraph(mydepgraph)
         mydepgraph._complete_graph()
 ##        mydepgraph._load_vdb()
-        printDepgraph(mydepgraph)
+##        printDepgraph(mydepgraph)
         
 
 
@@ -175,11 +211,42 @@ class PortageTree:
         for pkg in self.atoms:
             pkg.deps.sort()
             pkg.requiredby.sort()
-            
-            
+
+    # load a graph like the one portage uses for a depclean.  It is
+    # a tree of all installed packages
+    def load_installed_tree(self, dbinfo):
+
+        myaction, myopts, myfiles = parse_opts(["-p", "gcc"])
+        emerge_config = load_emerge_config(action=myaction, args=myfiles, opts=myopts)
+        settings, trees, mtimedb = emerge_config
+
+        myparams = create_depgraph_params(myopts, "remove")
+        mydepgraph = depgraph(settings, trees, myopts, myparams, None)
+        mydepgraph._complete_graph()
+        mydigraph = mydepgraph._dynamic_config.digraph
+##        printDepgraph(mydepgraph)
+
+        
+        for rootnode in mydigraph.root_nodes():
+            buildpackagetree(dbinfo, self.atoms, mydigraph, rootnode)            
+
+    # load a graph the portage uses for updates
+    def load_update_tree(self, dbinfo):
+
+        myaction, myopts, myfiles = parse_opts(["-p", "@world"])
+        emerge_config = load_emerge_config(action=myaction, args=myfiles, opts=myopts)
+        settings, trees, mtimedb = emerge_config
+
+        myparams = create_depgraph_params(myopts, "regen")
+        print(f'myparams {myparams}')
+        mydepgraph = depgraph(settings, trees, myopts, myparams, None)
+
+        mydigraph = mydepgraph._dynamic_config.digraph
+        success, favorites = mydepgraph.select_files(myfiles)
+        #mydepgraph.display_problems()
+
+        self.atoms = buildpkgtreeforupdate(dbinfo, mydigraph)
+
+
     def packages(self):
         return self.atoms
-    
-        
-        
-        

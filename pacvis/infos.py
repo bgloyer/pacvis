@@ -120,6 +120,7 @@ class DbInfo:
                 numcircles = numcircles + 1
                 print (circleLen)
         print(f'num cycles {numcircles}')
+
     def top_down_sort(self, usemagic, all_pkgs):
         remain_pkgs = set(all_pkgs)
         cycle_check = set()
@@ -279,15 +280,24 @@ class DbInfo:
                     # count this dep because it is above pkg
                     min_dep_level = min(min_dep_level, pkg_dep_level)
             if min_dep_level != 999999:
-                assert pkg.level < min_dep_level #dont move the package up
+                assert pkg.level < min_dep_level # dont move the package up
                 pkg.level = min_dep_level - 1
+                currlevel = pkg.level
             else:
-                # there were no deps above this level
-                pkg.level = currlevel
-            currlevel = pkg.level
+                # there were no deps above this level but make sure not to put
+                # 2 packages on the same level
+                samereqlevel = False
+                for pkg_req in pkg.requiredby:
+                    samereqlevel |= currlevel == self.get(pkg_req).level
+                if samereqlevel:
+                    # this is on the same level as a req by put it up a level
+                    # so that they won't be on the same level
+                    pkg.level = max(currlevel - 1, pkg.level)
+                else:
+                    pkg.level = currlevel
 
         # shift them so the top node starts at 1
-        shift = currlevel - 1
+        shift = self.get(min(sorted_pkgs, key=lambda x: self.get(x).level)).level - 1
         for pkg_name in sorted_pkgs:
             self.get(pkg_name).level -= shift
 
