@@ -113,6 +113,9 @@ class MainHandler(tornado.web.RequestHandler):
                     node['shape'] = "triangleDown"
                 elif pkg.is_set():
                     node['shape'] = "square"
+                elif pkg.needs_update():
+                    node['shape'] = "star"
+
                 
                 nodes.append(node)
         ids = 0

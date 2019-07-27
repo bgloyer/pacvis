@@ -61,14 +61,14 @@ def buildpkgtreeforupdate(dbinfo, digraph):
     for pkg in digraph.nodes:
         mergechildren = [] # the list of children that can be merged
         for child in digraph.child_nodes(pkg):
-            if ismergepkg(pkg):
+            if ismergepkg(child):
                 mergechildren.append(child)
                 if not child.cpv in atomsdict:
-                    atomsdict[child.cpv] = PkgInfo(child.cpv, dbinfo)
-        if len(mergechildren) > 0 or ismergepkg(pkg):
+                    atomsdict[child.cpv] = PkgInfo(child.cpv, dbinfo, merge=True)
+        if (len(mergechildren) > 0 and isinstance(pkg, Package)) or ismergepkg(pkg):
             # add pkg if it or a child needs merged
             if not pkg.cpv in atomsdict:
-                atomsdict[pkg.cpv] = PkgInfo(pkg.cpv, dbinfo)
+                atomsdict[pkg.cpv] = PkgInfo(pkg.cpv, dbinfo, merge=ismergepkg(pkg))
 
             # add links between parent and child
             parent_pkg = atomsdict[pkg.cpv]
@@ -81,7 +81,7 @@ def buildpkgtreeforupdate(dbinfo, digraph):
 
 
 class PkgInfo:
-    def __init__(self, name, dbinfo):
+    def __init__(self, name, dbinfo, merge=False):
         self.desc = name
         dbinfo.all_pkgs[name] = self
         self.deps = []
@@ -96,6 +96,7 @@ class PkgInfo:
         self.repo = []
         self.requiredby =[]
         self.version = 3
+        self._merge = merge
     def find_dependencies(self, pkg):
         pass
 ##        return deps
@@ -103,6 +104,8 @@ class PkgInfo:
         return self.name.startswith("virtual/")
     def is_set(self):
         return self.name.startswith("@")
+    def needs_update(self):
+        return self._merge
     
 
 def printDepgraph(depgraph):
