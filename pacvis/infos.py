@@ -115,10 +115,10 @@ class DbInfo:
                 strongconnect(pkg)
         numcircles = 0
         for pkg in self.all_pkgs:
-            circleLen = len(self.get(pkg).circledeps) 
-            if circleLen > 1:
+            circlelen = len(self.get(pkg).circledeps)
+            if circlelen > 1:
                 numcircles = numcircles + 1
-                print (circleLen)
+                print (circlelen)
         print(f'num cycles {numcircles}')
 
     def top_down_sort(self, usemagic, all_pkgs):
@@ -138,12 +138,12 @@ class DbInfo:
             pkginfo = self.get(pkg)
             origin_level = pkginfo.level
             print("%s %d (remaining %d)" % (pkg,
-                                                     origin_level,
-                                                     len(remain_pkgs)))
+                                            origin_level,
+                                            len(remain_pkgs)))
             if len(all_pkgs.intersection(pkginfo.deps)) == 0:
                 if all([len(pkginfo.deps) == 0,
                         len(pkginfo.requiredby) == 0]):
-                    pkginfo.level = 1 ##  0
+                    pkginfo.level = 1
                 continue
             max_level = 1 + max(self.get(x).level
                                 for x in all_pkgs.intersection(pkginfo.deps))
@@ -168,7 +168,6 @@ class DbInfo:
                 cycle_check.update(update_set)
                 remain_pkgs.update(update_set.difference(cycle_check))
                 print(f' level {pkginfo.level} : {origin_level} len: {len(update_set)} rem: {len(remain_pkgs)} name {pkginfo.name}')
-
 
     def buttom_up_sort(self, all_pkgs):
         remain_pkgs = set(all_pkgs)
@@ -209,8 +208,7 @@ class DbInfo:
 
     def topology_sort(self, usemagic, aligntop, byrepos):
         level = 1
-        found_level = set()
-        found_pkgs = set() # the packages that have been assigned to a level
+        found_pkgs = set()  # the packages that have been assigned to a level
         # find the top level packages that nothing depends on
         found_level = list(filter(lambda p: len(self.get(p).requiredby) == 0,
                                   self.all_pkgs))
@@ -227,7 +225,7 @@ class DbInfo:
             # remove any already in the found set to protect from cycles
             next_deps -= found_pkgs
 
-            # find the package with the fewest number of dependacies outside
+            # find the package with the fewest number of dependencies outside
             # of the found set.  It would be 0 except for cycles
             min_reqby = len(self.all_pkgs)
             reqby_dict = {}
@@ -256,8 +254,6 @@ class DbInfo:
                         max_deps = num_deps
                         max_dep_name = dep_name
                 found_level = [max_dep_name]
-                        
-            
             #print(f'level: {level} min_reqby: {min_reqby} num pkgs: {len(found_level)}')
 
         self.compress_down()

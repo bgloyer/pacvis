@@ -116,7 +116,6 @@ class MainHandler(tornado.web.RequestHandler):
                 elif pkg.needs_update():
                     node['shape'] = "star"
 
-                
                 nodes.append(node)
         ids = 0
         for pkg in sorted(dbinfo.all_pkgs.values(), key=lambda x: x.level):
@@ -138,7 +137,7 @@ class MainHandler(tornado.web.RequestHandler):
                                 links.append(link)
                                 ids += 1
                 for dep in pkg.circledeps:
-                    if (pkg.id != dbinfo.get(dep).id):
+                    if pkg.id != dbinfo.get(dep).id:
                         links.append({"id": ids,
                                       "to": pkg.id,
                                       "from": dbinfo.get(dep).id,

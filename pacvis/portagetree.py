@@ -1,6 +1,5 @@
 import gentoolkit
 import portage
-portage._internal_caller = True
 from portage import os
 
 from _emerge.depgraph import backtrack_depgraph, depgraph, resume_depgraph
@@ -11,6 +10,7 @@ from _emerge.create_depgraph_params import create_depgraph_params
 from portage._sets.files import StaticFileSet, WorldSelectedPackagesSet
 
 from .console import start_message, append_message, print_message
+portage._internal_caller = True
 
 
 def printpkg(pkginfo):
@@ -22,8 +22,7 @@ def printpkg(pkginfo):
     print(pkginfo.requiredby)
 
 
-
-def buildpackagetree(dbinfo, atoms, digraph, node):
+def buildpackagegraph(dbinfo, atoms, digraph, node):
     if isinstance(node, Package):
         nodename = node.cpv
         reponame = node.repo
@@ -35,7 +34,7 @@ def buildpackagetree(dbinfo, atoms, digraph, node):
         reponame = ""
         
     pkg = PkgInfo(nodename, dbinfo)
-    pkg.repo=reponame
+    pkg.repo = reponame
     selected = nodename == '@selected'
     atoms.append(pkg)
     for child in digraph.child_nodes(node):
@@ -45,13 +44,14 @@ def buildpackagetree(dbinfo, atoms, digraph, node):
             childname = f'{child}'
             
         pkg.deps.append(childname)
-        child_pkg = buildpackagetree(dbinfo, atoms, digraph, child)
+        child_pkg = buildpackagegraph(dbinfo, atoms, digraph, child)
         if child_pkg is not None:
             child_pkg.explicit = selected
             child_pkg.requiredby.append(nodename)
     return pkg
 
-def buildpkgtreeforupdate(dbinfo, digraph):
+
+def buildpkggraphforupdate(dbinfo, digraph):
     # returns true if this package can be merged (updated)
     def ismergepkg(pkg):
         ismerge = isinstance(pkg, Package) and pkg.operation == 'merge'
@@ -67,7 +67,7 @@ def buildpkgtreeforupdate(dbinfo, digraph):
                     atomsdict[child.cpv] = PkgInfo(child.cpv, dbinfo, merge=True)
         if (len(mergechildren) > 0 and isinstance(pkg, Package)) or ismergepkg(pkg):
             # add pkg if it or a child needs merged
-            if not pkg.cpv in atomsdict:
+            if pkg.cpv not in atomsdict:
                 atomsdict[pkg.cpv] = PkgInfo(pkg.cpv, dbinfo, merge=ismergepkg(pkg))
 
             # add links between parent and child
@@ -97,13 +97,17 @@ class PkgInfo:
         self.requiredby =[]
         self.version = 3
         self._merge = merge
+
     def find_dependencies(self, pkg):
         pass
 ##        return deps
+
     def is_virtual(self):
         return self.name.startswith("virtual/")
+
     def is_set(self):
         return self.name.startswith("@")
+
     def needs_update(self):
         return self._merge
     
@@ -137,8 +141,8 @@ class PortageTree:
     def __init__(self, dbinfo):
 
         self.atoms = []
-        self.load_installed_tree(dbinfo)
-#        self.load_update_tree(dbinfo)
+        self.load_installed_graph(dbinfo)
+#        self.load_update_graph(dbinfo)
         
         # sort the dependent packages
         for pkg in self.atoms:
@@ -146,8 +150,8 @@ class PortageTree:
             pkg.requiredby.sort()
 
     # load a graph like the one portage uses for a depclean.  It is
-    # a tree of all installed packages
-    def load_installed_tree(self, dbinfo):
+    # a graph of all installed packages
+    def load_installed_graph(self, dbinfo):
 
         myaction, myopts, myfiles = parse_opts(["-p", "gcc"])
         emerge_config = load_emerge_config(action=myaction, args=myfiles, opts=myopts)
@@ -159,12 +163,11 @@ class PortageTree:
         mydigraph = mydepgraph._dynamic_config.digraph
 ##        printDepgraph(mydepgraph)
 
-        
         for rootnode in mydigraph.root_nodes():
-            buildpackagetree(dbinfo, self.atoms, mydigraph, rootnode)            
+            buildpackagegraph(dbinfo, self.atoms, mydigraph, rootnode)
 
     # load a graph the portage uses for updates
-    def load_update_tree(self, dbinfo):
+    def load_update_graph(self, dbinfo):
 
         myaction, myopts, myfiles = parse_opts(["-p", "@world"])
         emerge_config = load_emerge_config(action=myaction, args=myfiles, opts=myopts)
@@ -178,7 +181,7 @@ class PortageTree:
         success, favorites = mydepgraph.select_files(myfiles)
         #mydepgraph.display_problems()
 
-        self.atoms = buildpkgtreeforupdate(dbinfo, mydigraph)
+        self.atoms = buildpkggraphforupdate(dbinfo, mydigraph)
 
 
     def packages(self):
