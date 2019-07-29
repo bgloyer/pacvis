@@ -17,6 +17,11 @@ python -m pacvis.pacvis
 
 Then go to http://localhost:8888/ .
 
+Or to preview an emerge give the emerge options with -e:
+```
+python -m  pacvis.pacvis --browser -e="--update --changed-use --deep --quiet @world"
+```
+
 ## Changes from parent Arch repo
 * Pulled the tree from Poratage (the tree that depclean uses) 
 * Added search by partial package name
