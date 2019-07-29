@@ -16,6 +16,19 @@ from .infos import DbInfo, PkgInfo, GroupInfo, VDepInfo
 # Tornado entry
 class MainHandler(tornado.web.RequestHandler):
 
+    @classmethod
+    def loadgraph(cls, emerge_args):
+        # load the package database
+        dbinfo = DbInfo()
+        start_message("Loading local database ...")
+        dbinfo.find_all(False)
+        append_message("done")
+        start_message("Finding all dependency circles ... ")
+        dbinfo.find_circles()
+        append_message("done")
+        dbinfo.load_graph(emerge_args)
+        cls.dbinfo = dbinfo
+
     def parse_args(self, **kargs):
         result = {}
         for key in kargs:
@@ -44,13 +57,7 @@ class MainHandler(tornado.web.RequestHandler):
             debugperformance=False,
             byrepos=False,
             showallvdeps=False))
-        dbinfo = DbInfo()
-        start_message("Loading local database ...")
-        dbinfo.find_all(args.showallvdeps)
-        append_message("done")
-        start_message("Finding all dependency circles ... ")
-        dbinfo.find_circles()
-        append_message("done")
+        dbinfo = MainHandler.dbinfo
         dbinfo.topology_sort(args.usemagic, args.aligntop, args.byrepos)
         dbinfo.calcSizes()
 
@@ -172,7 +179,9 @@ def main():
     argp.add_argument('-p', '--port', type=int, default=8888, help='listen at given port')
     argp.add_argument('-s', '--host', type=str, default='localhost', help='listen at given hostname')
     argp.add_argument('-b', '--browser', action='store_true', help='start a browser')
+    argp.add_argument('-e', '--emerge_args', type=str, help='arguments for emerge')
     args = argp.parse_args()
+    MainHandler.loadgraph(args.emerge_args)
     app = make_app()
     app.listen(args.port, address=args.host)
     print_message(f"Start PacVis at http://{args.host}:{args.port}/")

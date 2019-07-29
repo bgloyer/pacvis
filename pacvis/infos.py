@@ -22,12 +22,12 @@ class DbInfo:
         local = "XXXX" #self.localdb.name
         self.repo_list.append(local)
         self.repos[local] = RepoInfo(local, self)
-#        print_message("Enabled repos: %s" %
-#                      ", ".join(db.name for db in self.syncdbs))
-#        tree = PortageTree(self)
-#        self.packages = tree.packages()
 
         print_message("Repo_list repos: %s" % ", ".join(self.repo_list))
+
+    def load_graph(self, emerge_args):
+        tree = PortageTree(self, emerge_args)
+        self.packages = tree.packages()
 
     def find_syncdb(self, pkgname):
         repo = ""
@@ -57,9 +57,6 @@ class DbInfo:
         return pkg.name
 
     def find_all(self, showallvdeps):
-        if len(self.packages) == 0:
-            tree = PortageTree(self)
-            self.packages = tree.packages()
         return self.all_pkgs
 
     '''
@@ -382,6 +379,8 @@ class DbInfo:
         return pkg.cssize
 '''
     def calcSizes(self):
+        if len(self.all_pkgs.values()) == 0:
+            return
         start_message("Calculating csize ... ")
         maxCSize = max(self.calcCSize(pkg) for pkg in self.all_pkgs.values())
         append_message(" max cSize: " + str(maxCSize))

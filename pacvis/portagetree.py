@@ -138,11 +138,15 @@ def printDepgraph(depgraph):
 
     
 class PortageTree:
-    def __init__(self, dbinfo):
+    def __init__(self, dbinfo, emerge_args):
 
         self.atoms = []
-        self.load_installed_graph(dbinfo)
-#        self.load_update_graph(dbinfo)
+        if emerge_args is None:
+            # show the installed packages
+            self.load_installed_graph(dbinfo)
+        else:
+            # show the graph for 'emerge -p {emerge_args}'
+            self.load_update_graph(dbinfo, emerge_args)
         
         # sort the dependent packages
         for pkg in self.atoms:
@@ -167,9 +171,12 @@ class PortageTree:
             buildpackagegraph(dbinfo, self.atoms, mydigraph, rootnode)
 
     # load a graph the portage uses for updates
-    def load_update_graph(self, dbinfo):
-
-        myaction, myopts, myfiles = parse_opts(["-p", "@world"])
+    def load_update_graph(self, dbinfo, emerge_args):
+        args = emerge_args.split()
+        portage._decode_argv(args)
+        myaction, myopts, myfiles = parse_opts(args)
+        # always set -p so that portage won't try an do anything
+        myopts['--pretend'] = True
         emerge_config = load_emerge_config(action=myaction, args=myfiles, opts=myopts)
         settings, trees, mtimedb = emerge_config
 
