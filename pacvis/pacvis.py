@@ -127,37 +127,75 @@ class MainHandler(tornado.web.RequestHandler):
         ids = 0
         for pkg in sorted(dbinfo.all_pkgs.values(), key=lambda x: x.level):
             if pkg.level < args.maxlevel:
+                # add edges between the node according to the dep type.  Only
+                # add the strongest edge if there is more than one between two nodes
+                added_deps = set() # to avoid adding two links between the same pair
                 if len(pkg.deps) == 0 and len(pkg.requiredby) == 0:
                     links.append({"id": ids,
                                   "from": pkg.id,
                                   "to": 0})
                     ids += 1
-                if len(pkg.deps) < args.maxdeps:
-                    for dep in pkg.deps:
-                        if dep not in pkg.circledeps:
-                            if len(dbinfo.get(dep).requiredby) < args.maxreqs:
-                                link = {"id": ids,
-                                        "from": pkg.id,
-                                        "to": dbinfo.get(dep).id}
-                                if pkg.level > dbinfo.get(dep).level:
-                                    link["color"] = "rgb(244,67,54,0.8)"
-                                links.append(link)
-                                ids += 1
-                for dep in pkg.circledeps:
-                    if pkg.id != dbinfo.get(dep).id:
-                        links.append({"id": ids,
-                                      "to": pkg.id,
-                                      "from": dbinfo.get(dep).id,
-                                      "color": "rgb(244,67,54,0.8)"})
-                        ids += 1
-                for dep in pkg.optdeps:
-                    if dep in dbinfo.all_pkgs:
-                        links.append({"id": ids,
-                                      "from": pkg.id,
-                                      "to": dbinfo.get(dep).id,
-                                      "dashes": True,
-                                      "color": "rgb(255,235,59)"})
-                        ids += 1
+                for dep in pkg.depends:
+                    link = {"id": ids,
+                            "from": pkg.id,
+                            "to": dbinfo.get(dep).id}
+                    if pkg.level > dbinfo.get(dep).level:
+                        link["color"] = "rgb(244,67,54,0.8)"
+                    links.append(link)
+                    added_deps.add(dep)
+                    ids += 1
+
+                for dep in pkg.rdepends:
+                    if dep in added_deps:
+                        # this package already has a stronger dep link
+                        continue
+                    link = {"id": ids,
+                            "from": pkg.id,
+                            "to": dbinfo.get(dep).id,
+                            "dashes": True,
+                            "color": "rgb(44,255,54,0.8)"}
+                    links.append(link)
+                    added_deps.add(dep)
+                    ids += 1
+
+                for dep in pkg.pdepends:
+                    if dep in added_deps:
+                        # this package already has a stronger dep link
+                        continue
+                    link = {"id": ids,
+                            "from": pkg.id,
+                            "to": dbinfo.get(dep).id,
+                            "dashes": True,
+                            "color": "rgb(64,87,255,0.8)"}
+                    links.append(link)
+                    ids += 1
+
+                # if len(pkg.deps) < args.maxdeps:
+                #     for dep in pkg.deps:
+                #         if dep not in pkg.circledeps:
+                #             if len(dbinfo.get(dep).requiredby) < args.maxreqs:
+                #                 link = {"id": ids,
+                #                         "from": pkg.id,
+                #                         "to": dbinfo.get(dep).id}
+                #                 if pkg.level > dbinfo.get(dep).level:
+                #                     link["color"] = "rgb(244,67,54,0.8)"
+                #                 links.append(link)
+                #                 ids += 1
+                # for dep in pkg.circledeps:
+                #     if pkg.id != dbinfo.get(dep).id:
+                #         links.append({"id": ids,
+                #                       "to": pkg.id,
+                #                       "from": dbinfo.get(dep).id,
+                #                       "color": "rgb(244,67,54,0.8)"})
+                #         ids += 1
+                # for dep in pkg.optdeps:
+                #     if dep in dbinfo.all_pkgs:
+                #         links.append({"id": ids,
+                #                       "from": pkg.id,
+                #                       "to": dbinfo.get(dep).id,
+                #                       "dashes": True,
+                #                       "color": "rgb(255,235,59)"})
+                #         ids += 1
         print_message("Writing HTML")
         self.render("templates/index.template.html",
                     nodes=json.dumps(nodes),
