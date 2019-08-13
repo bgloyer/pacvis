@@ -274,6 +274,7 @@ function wrapDeps(list){
 
 for(let nodeid in nodedata){
   let node = nodedata[nodeid];
+  node.hiddenLabel = node.label;   
   node.title = "<h4>" + node.label + "</h4>" +
     "<p>size: " + filesize(node[currentsize]) + "</p>" +
     "<p>groups: [" + wrapDeps(node.groups) + "]</p>" +
@@ -296,9 +297,9 @@ var data = {
 var physics = {
   maxVelocity: Math.floor(Math.sqrt(Math.sqrt(nodes.length))*200),
   hierarchicalRepulsion: {
-    nodeDistance: Math.floor(Math.sqrt(Math.sqrt(nodes.length))*180),
-    springLength: Math.floor(Math.sqrt(Math.sqrt(nodes.length))*100),
-    springConstant: 1,
+    nodeDistance: Math.floor(500 + Math.sqrt(Math.sqrt(nodes.length))*180),
+    springLength: Math.floor(100 + Math.sqrt(Math.sqrt(nodes.length))*100),
+    springConstant: .1,
     damping: 0.1
   },
   timestep: 0.1,

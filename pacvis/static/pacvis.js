@@ -23,8 +23,8 @@ function createPkgButton(dep) {
 
 function createSearchResultsDom(arr) {
   let pkgsdom = "";
-  for (const pkg of arr) {
-    pkgsdom += createPkgButton(pkg.label)
+  for (const node of arr) {
+    pkgsdom += createPkgButton(node.hiddenLabel)
   }
   return pkgsdom;
 }
@@ -55,8 +55,7 @@ function neighbourhoodHighlight(params) {
       // mark all nodes as hard to read.
       for (var nodeId in allNodes) {
         allNodes[nodeId].color = 'rgba(200,200,200,0.5)';
-        if (allNodes[nodeId].hiddenLabel === undefined) {
-          allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        if (allNodes[nodeId].label !== undefined) {
           allNodes[nodeId].label = undefined;
         }
       }
@@ -73,35 +72,31 @@ function neighbourhoodHighlight(params) {
       // all second degree nodes get a different color and their label back
       for (i = 0; i < allConnectedNodes.length; i++) {
         allNodes[allConnectedNodes[i]].color = 'rgba(150,150,150,0.75)';
-        if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        if (allNodes[allConnectedNodes[i]].label === undefined) {
           allNodes[allConnectedNodes[i]].label = allNodes[allConnectedNodes[i]].hiddenLabel;
-          allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
         }
       }
 
       // all first degree nodes get their own color and their label back
       for (i = 0; i < connectedNodes.length; i++) {
         allNodes[connectedNodes[i]].color = undefined;
-        if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        if (allNodes[connectedNodes[i]].label === undefined) {
           allNodes[connectedNodes[i]].label = allNodes[connectedNodes[i]].hiddenLabel;
-          allNodes[connectedNodes[i]].hiddenLabel = undefined;
         }
       }
 
       // the main node gets its own color and its label back.
       allNodes[selectedNode].color = undefined;
-      if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      if (allNodes[selectedNode].label === undefined) {
         allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
-        allNodes[selectedNode].hiddenLabel = undefined;
       }
     }
     else if (highlightActive === true) {
       // reset all nodes
       for (var nodeId in allNodes) {
         allNodes[nodeId].color = undefined;
-        if (allNodes[nodeId].hiddenLabel !== undefined) {
+        if (allNodes[nodeId].label === undefined) {
           allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
-          allNodes[nodeId].hiddenLabel = undefined;
         }
       }
       highlightActive = false
@@ -124,7 +119,7 @@ function selectPkg(node) {
   clearTimeout(deselectTimeout);
   document.getElementById("fsinfo").style.display = "block";
   document.querySelector('#fsinfo').className = "mdl-card mdl-shadow--4dp animated zoomIn";
-  document.getElementById("pkgname").innerHTML = node.label;
+  document.getElementById("pkgname").innerHTML = node.hiddenLabel;
   document.getElementById("pkgsizedesc").innerHTML = {"isize":"Installed", "csize":"Cascade", "cssize":"Recursive"}[currentsize] + " Size";
   document.getElementById("pkgsize").innerHTML =  filesize(node[currentsize]);
   let reason = node.group == "normal" ? "as a dependency" : "explicitly";
@@ -160,7 +155,7 @@ function deselectPkg(){
 function togglehide() {
   let pkgname = document.getElementById("pkgname").innerHTML;
   for (let node of nodes.get()) {
-    if (node.label == pkgname) {
+    if (node.hiddenLabel == pkgname) {
       var hide = !node.hidden;
       nodes.update({id : node.id, hidden : hide});
       for (let edge of edges.get()) {
@@ -195,18 +190,10 @@ function selectAndUnhidePkg(node){
 function trysearch() {
   let pkgname = document.getElementById("search").value;
   let found = false;
-//  for (let node of nodes.get()) {
-//      if (node.label == pkgname) {
-//	// there is an exact match so select the package
-//	found = true;
-//        selectAndUnhidePkg(node);
-//      break;
-//      }
-//  }
     if (!found) { // look for a close match 
 	var pkgs = new Array(0)
 	for (let node of nodes.get()) {
-	    if (node.label && node.label.includes(pkgname)) {
+	    if (node.hiddenLabel.includes(pkgname)) {
 		pkgs.push(node);
 	    }
 	}
