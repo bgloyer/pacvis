@@ -213,6 +213,11 @@ class PortageTree:
 ##        printDepgraph(mydepgraph)
         self.atoms = buildpkggraphforupdate(dbinfo, mydigraph, all_pkg_filter)
 
+        if len(self.atoms) == 0:
+            # there are no packages to display so exit
+            mydepgraph.display_problems()
+            raise RuntimeError("No packages to display")
+
         #for rootnode in mydigraph.root_nodes():
          #   buildpackagegraph(dbinfo, self.atoms, mydigraph, rootnode)
 
@@ -232,10 +237,13 @@ class PortageTree:
 
         mydigraph = mydepgraph._dynamic_config.digraph
         success, favorites = mydepgraph.select_files(myfiles)
-        #mydepgraph.display_problems()
 
         self.atoms = buildpkggraphforupdate(dbinfo, mydigraph, ismergepkg)
 
+        if len(self.atoms) == 0:
+            # there are no packages to display so exit
+            mydepgraph.display_problems()
+            raise RuntimeError("No packages to display")
 
     def packages(self):
         return self.atoms

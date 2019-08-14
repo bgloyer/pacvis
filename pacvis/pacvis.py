@@ -202,7 +202,12 @@ def main():
     argp.add_argument('-b', '--browser', action='store_true', help='start a browser')
     argp.add_argument('-e', '--emerge_args', type=str, help='arguments for emerge')
     args = argp.parse_args()
-    MainHandler.loadgraph(args.emerge_args)
+    try:
+        MainHandler.loadgraph(args.emerge_args)
+    except RuntimeError as err:
+        print(err)
+        sys.exit(0)
+
     app = make_app()
     app.listen(args.port, address=args.host)
     print_message(f"Start PacVis at http://{args.host}:{args.port}/")
@@ -215,8 +220,8 @@ def main():
     try:
     	tornado.ioloop.IOLoop.current().start()
     except KeyboardInterrupt:
-    	print_message("Received interrupt from keyboard, shutting down ...")
-    	sys.exit(0)
+        print_message("Received interrupt from keyboard, shutting down ...")
+        sys.exit(0)
 
 
 if __name__ == "__main__":
