@@ -194,25 +194,51 @@ def make_app():
         ], debug=True,
         static_path=os.path.join(os.path.dirname(__file__), "static"))
 
-
-def main():
-    argp = ArgumentParser(description='start PacVis server', formatter_class=ArgumentDefaultsHelpFormatter)
+def parse_args():
+    argp = ArgumentParser(description='start pacvis server', allow_abbrev=False,
+                          epilog="arguments after the optional pacvis arguments will be passed on to"
+                                 " emerge.  example usage: pacvis -p 8888 -b --update --changed-use --deep @world",
+                          formatter_class=ArgumentDefaultsHelpFormatter)
     argp.add_argument('-p', '--port', type=int, default=8888, help='listen at given port')
     argp.add_argument('-s', '--host', type=str, default='localhost', help='listen at given hostname')
     argp.add_argument('-b', '--browser', action='store_true', help='start a browser')
-    argp.add_argument('-e', '--emerge_args', type=str, help='arguments for emerge')
-    args = argp.parse_args()
+
+    # remove '-p' (--pretend) and -1' (--oneshot) from argv so it isn't accidentally interpreted as a port number
+    adjusted_args = []
+    is_prev_positive_int = False
+    for arg in reversed(sys.argv[1:]):
+        if arg == '-1' or arg == '-p' and not is_prev_positive_int:
+            is_prev_positive_int = False
+            continue
+        try:
+            val = int(arg)
+            is_prev_positive_int = val > 0
+        except ValueError:
+            is_prev_positive_int = False
+        adjusted_args.append(arg)
+    adjusted_args = reversed(adjusted_args)
+
+    args, rest = argp.parse_known_args(adjusted_args)
+
+    emerge_args = ""
+    for arg in rest:
+        emerge_args += " " + arg
+
+    return args, emerge_args
+
+def main():
+    pacvis_args, emerge_args = parse_args()
     try:
-        MainHandler.loadgraph(args.emerge_args)
+        MainHandler.loadgraph(emerge_args)
     except RuntimeError as err:
-        print(err)
+        print(f'\n{err}')
         sys.exit(0)
 
     app = make_app()
-    app.listen(args.port, address=args.host)
-    print_message(f"Start PacVis at http://{args.host}:{args.port}/")
-    if args.browser:
-        url = f'http://{args.host}:{args.port}/'
+    app.listen(pacvis_args.port, address=pacvis_args.host)
+    print_message(f"Start PacVis at http://{pacvis_args.host}:{pacvis_args.port}/")
+    if pacvis_args.browser:
+        url = f'http://{pacvis_args.host}:{pacvis_args.port}/'
         print_message(f'open in browser: {url}')
         open_new_tab(url)
     else:

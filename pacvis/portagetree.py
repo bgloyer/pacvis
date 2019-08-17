@@ -184,7 +184,7 @@ class PortageTree:
     def __init__(self, dbinfo, emerge_args):
 
         self.atoms = []
-        if emerge_args is None:
+        if emerge_args is None or len(emerge_args) == 0:
             # show the installed packages
             self.load_installed_graph(dbinfo)
         else:
