@@ -121,7 +121,7 @@ function selectPkg(node) {
   document.querySelector('#fsinfo').className = "mdl-card mdl-shadow--4dp animated zoomIn";
   document.getElementById("pkgname").innerHTML = node.hiddenLabel;
   document.getElementById("pkgsizedesc").innerHTML = {"isize":"Installed", "csize":"Cascade", "cssize":"Recursive"}[currentsize] + " Size";
-  document.getElementById("pkgsize").innerHTML =  filesize(node[currentsize]);
+  document.getElementById("pkgsize").innerHTML = " - ";  // filesize(node[currentsize]);
   let reason = node.group == "normal" ? "as a dependency" : "explicitly";
   document.getElementById("pkgreason").innerHTML = reason;
   document.getElementById("pkgversion").innerHTML = node.version;
@@ -132,10 +132,8 @@ function selectPkg(node) {
   document.getElementById("badgedep").setAttribute('data-badge', node.deps=="" ? 0 : node.deps.split(', ').length);
   document.getElementById("pkgreqs").innerHTML = createPkgListDom(node.reqs);
   document.getElementById("badgereq").setAttribute('data-badge', node.reqs=="" ? 0 : node.reqs.split(', ').length);
-  document.getElementById("pkgoptdeps").innerHTML = createPkgListDom(node.optdeps);
-  document.getElementById("badgeoptdep").setAttribute('data-badge', node.optdeps=="" ? 0 : node.optdeps.split(', ').length);
-  document.getElementById("pkggroups").innerHTML = createPkgListDom(node.groups);
-  document.getElementById("pkgprovides").innerHTML = node.provides;
+//  document.getElementById("pkggroups").innerHTML = createPkgListDom(node.groups);
+//  document.getElementById("pkgprovides").innerHTML = node.provides;
 }
 
 function deselectPkg(){

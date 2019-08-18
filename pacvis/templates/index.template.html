@@ -27,7 +27,7 @@
         <h3 style="color:#fff">PacVis</h3>
         <div class="mdl-layout-spacer"></div>
 
-        <a title="GitHub repo" href="https://github.com/bgloyer/pacvis"
+        <a title="Homepage" href="https://wiki.gentoo.org/wiki/pacvis"
           class="mdl-button mdl-js-button mdl-button--icon">
           <i class="material-icons">launch</i>
         </a>
@@ -91,37 +91,6 @@
             </div>
           </div>
           <div class="mdl-card__supporting-text mdl-card--expand">
-            <label class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="option-isize">
-              <input type="radio" id="option-isize" class="mdl-radio__button" name="drawsize" value="isize"
-                {% if options.drawsize == "isize" %} checked {% end %}>
-              <span class="mdl-radio__label">Draw Installed Size (-R)</span>
-            </label>
-            <label class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="option-csize">
-              <input type="radio" id="option-csize" class="mdl-radio__button" name="drawsize" value="csize"
-                {% if options.drawsize == "csize" %} checked {% end %}>
-              <span class="mdl-radio__label">Draw Cascade Size (-Rc)</span>
-            </label>
-            <label class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="option-cssize">
-              <input type="radio" id="option-cssize" class="mdl-radio__button" name="drawsize" value="cssize"
-                {% if options.drawsize == "cssize" %} checked {% end %}>
-              <span class="mdl-radio__label">Draw Recursive Size (-Rcs)</span>
-            </label>
-          </div>
-          <div class="mdl-card__supporting-text mdl-card--expand">
-            <label class="mdl-switch mdl-js-switch mdl-js-ripple-effect" for="usemagic">
-              <input type="checkbox" id="usemagic" name="usemagic"
-                class="mdl-switch__input"
-                value="True"
-                {% if options.usemagic %} checked {% end %} >
-              <span class="mdl-switch__label">Randomize topology level</span>
-            </label>
-            <label class="mdl-switch mdl-js-switch mdl-js-ripple-effect" for="byrepos">
-              <input type="checkbox" id="byrepos" name="byrepos"
-                class="mdl-switch__input"
-                value="True"
-                {% if options.byrepos %} checked {% end %} >
-              <span class="mdl-switch__label">Layered by repositories</span>
-            </label>
             <label class="mdl-switch mdl-js-switch mdl-js-ripple-effect" for="enablephysics">
               <input type="checkbox" id="enablephysics" name="enablephysics"
                 class="mdl-switch__input"
@@ -129,25 +98,11 @@
                 {% if options.enablephysics %} checked {% end %} >
               <span class="mdl-switch__label">Enable physics after stabilized</span>
             </label>
-            <label class="mdl-switch mdl-js-switch mdl-js-ripple-effect" for="aligntop">
-              <input type="checkbox" id="aligntop" name="aligntop"
-                class="mdl-switch__input"
-                value="True"
-                {% if options.aligntop %} checked {% end %} >
-              <span class="mdl-switch__label">Align packages to top</span>
-            </label>
-            <label class="mdl-switch mdl-js-switch mdl-js-ripple-effect" for="showallvdeps">
-              <input type="checkbox" id="showallvdeps" name="showallvdeps"
-                class="mdl-switch__input"
-                value="True"
-                {% if options.showallvdeps %} checked {% end %} >
-              <span class="mdl-switch__label">Show all virtual dependencies</span>
-            </label>
             <label class="mdl-switch mdl-js-switch mdl-js-ripple-effect" for="straightline">
               <input type="checkbox" id="straightline" name="straightline"
                 class="mdl-switch__input"
                 value="True"
-                {% if options.showallvdeps %} checked {% end %} >
+                {% if options.straightline %} checked {% end %} >
               <span class="mdl-switch__label">Use straight lines as edges</span>
             </label>
           </div>
@@ -183,9 +138,6 @@
               <a href="#req-panel" title="Packages that depends on this" class="mdl-tabs__tab">
                 <span class="mdl-badge" data-badge="4" id="badgereq">Req-By</span>
               </a>
-              <a href="#opt-panel" title="Optional dependencies" class="mdl-tabs__tab">
-                <span class="mdl-badge" data-badge="4" id="badgeoptdep">Opt-Dep</span>
-              </a>
           </div>
 
           <div class="mdl-tabs__panel is-active" id="info-panel">
@@ -197,14 +149,6 @@
               <tr>
                 <th class="mdl-data-table__cell--non-numeric">Repo</th>
                 <td id="pkgrepo" class="mdl-data-table__cell--non-numeric"></td>
-              </tr>
-              <tr>
-                <th class="mdl-data-table__cell--non-numeric">Groups</th>
-                <td id="pkggroups" class="mdl-data-table__cell--non-numeric"></td>
-              </tr>
-              <tr>
-                <th class="mdl-data-table__cell--non-numeric">Provides</th>
-                <td id="pkgprovides" class="mdl-data-table__cell--non-numeric"></td>
               </tr>
               <tr>
                 <th class="mdl-data-table__cell--non-numeric" id="pkgsizedesc">Size</th>
@@ -225,9 +169,6 @@
           </div>
           <div class="mdl-tabs__panel" id="req-panel">
             <div id="pkgreqs"></div>
-          </div>
-          <div class="mdl-tabs__panel" id="opt-panel">
-            <div id="pkgoptdeps"></div>
           </div>
         </div>
       </div>
@@ -276,11 +217,8 @@ for(let nodeid in nodedata){
   let node = nodedata[nodeid];
   node.hiddenLabel = node.label;   
   node.title = "<h4>" + node.label + "</h4>" +
-    "<p>size: " + filesize(node[currentsize]) + "</p>" +
-    "<p>groups: [" + wrapDeps(node.groups) + "]</p>" +
     "<p>depends: [" + wrapDeps(node.deps) + "]</p>" +
-    "<p>required by:[" + wrapDeps(node.reqs) +"]</p>" +
-    "<p>optdeps:[" + wrapDeps(node.optdeps) +"]</p>";
+    "<p>required by:[" + wrapDeps(node.reqs) +"]</p>";
   node.value = size2value(node[currentsize]);
 }
 
@@ -421,7 +359,6 @@ function ifNeedReload(){
       let cv = Number.isInteger(v) ? dom.value : dom.checked;
       need = need || cv != v;
     }
-    need = need || !document.querySelector("#option-"+currentsize).checked;
   }
   if(need){
     document.querySelector('#reloadbtn').className = "mdl-button mdl-js-button mdl-button--raised mdl-button--colored";
@@ -439,9 +376,6 @@ for(key in pacvisopts){
     }
   }
 }
-document.querySelector("#option-isize").addEventListener("change" , ifNeedReload);
-document.querySelector("#option-csize").addEventListener("change" , ifNeedReload);
-document.querySelector("#option-cssize").addEventListener("change" , ifNeedReload);
 
 document.querySelector('#search').addEventListener('input', trysearch);
 document.querySelector('#close_button').addEventListener('click', close_panel);
