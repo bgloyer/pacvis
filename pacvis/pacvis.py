@@ -72,39 +72,62 @@ class MainHandler(tornado.web.RequestHandler):
             pkg.id = ids
             ids += 1
             if pkg.level < args.maxlevel:
-                group = "normal"
-                if pkg.level == 0:
-                    group = "standalone"
-                elif type(pkg) is GroupInfo:
-                    group = "group"
-                elif type(pkg) is VDepInfo:
-                    group = "vdep"
-                    # if not args.showallvdeps and len(pkg.requiredby) == 0:
-                    #     continue
-                elif pkg.explicit:
-                    group = "explicit"
+                catagory = "normal"
+                if pkg.explicit:
+                    catagory = 'explicit' # selected
+                elif pkg.is_system(): # TODO XXXX
+                    catagory = 'system'
+                elif pkg.is_virtual():
+                    catagory = 'virtual'
+                elif pkg.is_set():
+                    catagory = 'set'
+                elif catagory == "normal" and (ids % 4 == 0): #TODO temp
+                    if ids % 3 == 0:
+                        catagory = 'explicit'
+                    elif ids % 3 == 1:
+                        catagory = 'system'
+                    elif ids % 3 == 2:
+                        catagory = 'set'
+                
+                build_status = 'keep'
+                if pkg.needs_update():
+                    build_status = 'update' # TODO XXXX show as remove then add?
+                elif ids % 7 == 0:
+                    if ids % 4 == 0:
+                        build_status = 'add'
+                    elif ids % 4 == 1:
+                        build_status = 'remove'
+                    elif ids % 4 == 3:
+                        build_status = 'rebuild'
+                    else:
+                        build_status = 'not_installed' 
+
+                stability = 'stable'
+                if ids % 5 == 0:
+                    if ids % 4 == 0:
+                        stability = 'test'
+                    elif ids % 4 == 1:
+                        stability = 'live'
+                    elif ids % 4 == 3:
+                        stability = 'overlay-live'
+                    else:
+                        stability = 'overlay-test' # TODO inclulde overlay-stable?
+
                 node = {"id": pkg.id,
                         "label": pkg.name,
                         "level": pkg.level,
-                        "group": group,
+                        "catagory": catagory,
+                        "build_status": build_status,
+                        "stability": stability,
                         "isize": pkg.isize,
                         "csize": pkg.csize,
                         "cssize": pkg.cssize,
                         "deps": ", ".join(pkg.deps),
                         "reqs": ", ".join(pkg.requiredby),
-                        "optdeps": ", ".join(pkg.optdeps),
-                        "groups": ", ".join(pkg.groups),
-                        "provides": ", ".join(pkg.provides),
                         "desc": pkg.desc,
                         "version": pkg.version,
                         "repo": pkg.repo,
                 }
-                if pkg.is_virtual():
-                    node['shape'] = "triangleDown"
-                elif pkg.is_set():
-                    node['shape'] = "square"
-                elif pkg.needs_update():
-                    node['shape'] = "star"
 
                 nodes.append(node)
         ids = 0
@@ -121,9 +144,8 @@ class MainHandler(tornado.web.RequestHandler):
                 for dep in pkg.depends:
                     link = {"id": ids,
                             "from": pkg.id,
-                            "to": dbinfo.get(dep).id}
-                    if pkg.level > dbinfo.get(dep).level:
-                        link["color"] = "rgb(244,67,54,0.8)"
+                            "to": dbinfo.get(dep).id,
+                            "dep": 'DEPEND'}
                     links.append(link)
                     added_deps.add(dep)
                     ids += 1
@@ -135,8 +157,7 @@ class MainHandler(tornado.web.RequestHandler):
                     link = {"id": ids,
                             "from": pkg.id,
                             "to": dbinfo.get(dep).id,
-                            "dashes": True,
-                            "color": "rgb(44,255,54,0.8)"}
+                            "dep": 'RDEPEND'}
                     links.append(link)
                     added_deps.add(dep)
                     ids += 1
@@ -148,37 +169,10 @@ class MainHandler(tornado.web.RequestHandler):
                     link = {"id": ids,
                             "from": pkg.id,
                             "to": dbinfo.get(dep).id,
-                            "dashes": True,
-                            "color": "rgb(64,87,255,0.8)"}
+                            "dep": 'PDEPEND'}
                     links.append(link)
                     ids += 1
 
-                # if len(pkg.deps) < args.maxdeps:
-                #     for dep in pkg.deps:
-                #         if dep not in pkg.circledeps:
-                #             if len(dbinfo.get(dep).requiredby) < args.maxreqs:
-                #                 link = {"id": ids,
-                #                         "from": pkg.id,
-                #                         "to": dbinfo.get(dep).id}
-                #                 if pkg.level > dbinfo.get(dep).level:
-                #                     link["color"] = "rgb(244,67,54,0.8)"
-                #                 links.append(link)
-                #                 ids += 1
-                # for dep in pkg.circledeps:
-                #     if pkg.id != dbinfo.get(dep).id:
-                #         links.append({"id": ids,
-                #                       "to": pkg.id,
-                #                       "from": dbinfo.get(dep).id,
-                #                       "color": "rgb(244,67,54,0.8)"})
-                #         ids += 1
-                # for dep in pkg.optdeps:
-                #     if dep in dbinfo.all_pkgs:
-                #         links.append({"id": ids,
-                #                       "from": pkg.id,
-                #                       "to": dbinfo.get(dep).id,
-                #                       "dashes": True,
-                #                       "color": "rgb(255,235,59)"})
-                #         ids += 1
         print_message("Writing HTML")
         self.render("templates/index.template.html",
                     nodes=json.dumps(nodes),

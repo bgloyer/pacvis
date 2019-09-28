@@ -148,6 +148,9 @@ class PkgInfo:
     def is_virtual(self):
         return self.name.startswith("virtual/")
 
+    def is_system(self):
+        return False
+
     def is_set(self):
         return self.name.startswith("@")
 

@@ -196,7 +196,9 @@
 
 var currentsize="{{ options.drawsize }}";
 
-var nodedata = {% raw nodes %};
+let nodedata = {% raw nodes %};
+
+let edgedata = {% raw links %};
 
 function wrapDeps(list){
   var depsdom = "";
@@ -219,12 +221,79 @@ for(let nodeid in nodedata){
   node.title = "<h4>" + node.label + "</h4>" +
     "<p>depends: [" + wrapDeps(node.deps) + "]</p>" +
     "<p>required by:[" + wrapDeps(node.reqs) +"]</p>";
-  node.value = size2value(node[currentsize]);
+  //node.value = size2value(node[currentsize]);
+  
+  if (node.catagory == 'normal') {
+    node.shape = 'box'
+  } else if (node.catagory == 'explicit') {
+    node.shape = 'circle'
+  } else if (node.catagory == 'system') {
+    node.shape = 'ellipse'
+  } else if (node.catagory == 'virtual') {
+    node.shape = 'triangle'
+  } else if (node.catagory == 'set') {
+    node.shape = 'database'
+  } else {
+    node.shape = 'star' // should not happen
+  }
+  
+
+
+  if (node.build_status == "add") {
+    node.color = 'rgba(64,64,255,0.8)'
+  } else if (node.build_status == "keep") {
+    node.color = 'rgba(0,255,0,0.8)'
+  } else if (node.build_status == "update") {
+    node.color = 'rgba(200,200,0,0.8)'
+  } else if (node.build_status == "remove") {
+    node.color = 'rgba(245, 94, 0,0.8)'
+  } else if (node.build_status == "rebuild") {
+    node.color = 'rgba(0, 255, 200 ,0.8)'
+  } else if (node.build_status == "not_installed") {
+    node.color = 'rgba(166,166,166,0.6)'
+  } else { // should not happen
+    node.color = 'rgba(255,0,0, 0.98)'
+  }
+
+  node.borderWidth = 30;
+  if (node.stability == 'stable') {
+    node.color.border = '#66FF77'
+//    node.shapeProperties.borderDashes = false;
+  } else if (node.stability == 'test') {
+    node.color.border = '#AAFF44'
+//    node.shapeProperties.borderDashes = false;
+  } else if (node.stability == 'live') {
+    node.color.border = '#DDBB77'
+//    node.shapeProperties.borderDashes = [3, 6];
+  } else if (node.stability == 'overlay-test') {
+    node.color.border = '#FF9977'
+//    node.shapeProperties.borderDashes = [2, 9];
+  } else if (node.stability == 'ovelay-live') {
+    node.color.border = '#FF4433'
+//    node.shapeProperties.borderDashes = [1, 12];
+  }
+
+}
+
+for(let edgeid in edgedata){
+  let edge = edgedata[edgeid];
+  if (edge.dep == "DEPEND"){
+//      edge.color = 'rgba(120,255,100,0.8)'
+//      edge.dashes = [30, 2, 14, 2, 6, 2, 2, 2] //Dashed lines are too slow to draw 
+  } else if (edge.dep == "RDEPEND"){
+//      edge.color = 'rgba(64,255,200,0.8)'
+      edge.dashes = [48, 4, 12, 4, 4, 4]  
+  } else if (edge.dep == "PDEPEND"){
+//      edge.color = 'rgba(64,64,255,0.8)'  
+      edge.dashes = [40, 6, 10, 6, 2, 6, 2, 6]  
+  } else { // Should not happen, maybe BDEPEND later
+  //  edge.color = 'rgba(24,247,54,0.8)'  
+  }
 }
 
 var nodes = new vis.DataSet(nodedata);
 
-var edges = new vis.DataSet({% raw links %});
+var edges = new vis.DataSet(edgedata);
 
 // create a network
 var container = document.getElementById('target');
@@ -247,14 +316,14 @@ var physics = {
   }
 };
 var options = {
-  groups: {
-    standalone: { shape: 'square', color: 'rgba(100,100,255,0.8)', size: 12 },
-    normal: { shape: 'dot', color: 'rgba(255,171,64,0.8)'},
-    group: { shape: 'triangle', size: 12, color: 'rgba(76,175,80,0.8)'},
-    vdep: { shape: 'diamond', size: 12, color: 'rgba(205,220,57,0.8)'},
-    explicit: { shape: 'dot', color: 'rgba(103,58,183,0.8)'},
-    consolidated: { shape: 'star', color: 'rgba(255,0,0,0.8)', size: 12},
-  },
+//  groups: {
+//    standalone: { shape: 'square', size: 12 },
+//    normal: { shape: 'dot'},
+//    group: { shape: 'triangle', size: 12},
+//    vdep: { shape: 'diamond', size: 12},
+//    explicit: { shape: 'dot'},
+//    consolidated: { shape: 'star', size: 12},
+//  },
   nodes: {
     scaling: {
       min: 5,
