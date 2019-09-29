@@ -255,22 +255,23 @@ for(let nodeid in nodedata){
     node.color = 'rgba(255,0,0, 0.98)'
   }
 
-  node.borderWidth = 30;
+  node.borderWidth = 15;
   if (node.stability == 'stable') {
-    node.color.border = '#66FF77'
+//    node.color.border = '#66FF77'
 //    node.shapeProperties.borderDashes = false;
   } else if (node.stability == 'test') {
-    node.color.border = '#AAFF44'
+//    node.color.border = '#AAFF44'
 //    node.shapeProperties.borderDashes = false;
+    node.shapeProperties = {borderDashes: [8, 8]};
   } else if (node.stability == 'live') {
-    node.color.border = '#DDBB77'
-//    node.shapeProperties.borderDashes = [3, 6];
+//    node.color.border = '#DDBB77'
+    node.shapeProperties = {borderDashes: [4, 12]};
   } else if (node.stability == 'overlay-test') {
-    node.color.border = '#FF9977'
-//    node.shapeProperties.borderDashes = [2, 9];
-  } else if (node.stability == 'ovelay-live') {
-    node.color.border = '#FF4433'
-//    node.shapeProperties.borderDashes = [1, 12];
+ //   node.color.border = '#FF9977'
+    node.shapeProperties = {borderDashes: [4, 28]};
+  } else if (node.stability == 'overlay-live') {
+ //   node.color.border = 'FF4433'
+    node.shapeProperties = {borderDashes: [8, 24]};
   }
 
 }

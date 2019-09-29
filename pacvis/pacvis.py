@@ -103,12 +103,12 @@ class MainHandler(tornado.web.RequestHandler):
                         build_status = 'not_installed' 
 
                 stability = 'stable'
-                if ids % 5 == 0:
-                    if ids % 4 == 0:
+                if ids % 2 == 0:
+                    if ids % 11 == 0:
                         stability = 'test'
-                    elif ids % 4 == 1:
+                    elif ids % 11 == 1:
                         stability = 'live'
-                    elif ids % 4 == 3:
+                    elif ids % 11 == 3:
                         stability = 'overlay-live'
                     else:
                         stability = 'overlay-test' # TODO inclulde overlay-stable?
