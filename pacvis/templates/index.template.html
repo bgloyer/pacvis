@@ -222,74 +222,13 @@ for(let nodeid in nodedata){
     "<p>depends: [" + wrapDeps(node.deps) + "]</p>" +
     "<p>required by:[" + wrapDeps(node.reqs) +"]</p>";
   //node.value = size2value(node[currentsize]);
-  
-  if (node.catagory == 'normal') {
-    node.shape = 'box'
-  } else if (node.catagory == 'explicit') {
-    node.shape = 'circle'
-  } else if (node.catagory == 'system') {
-    node.shape = 'ellipse'
-  } else if (node.catagory == 'virtual') {
-    node.shape = 'triangle'
-  } else if (node.catagory == 'set') {
-    node.shape = 'database'
-  } else {
-    node.shape = 'star' // should not happen
-  }
-  
-
-
-  if (node.build_status == "add") {
-    node.color = 'rgba(64,64,255,0.8)'
-  } else if (node.build_status == "keep") {
-    node.color = 'rgba(0,255,0,0.8)'
-  } else if (node.build_status == "update") {
-    node.color = 'rgba(200,200,0,0.8)'
-  } else if (node.build_status == "remove") {
-    node.color = 'rgba(245, 94, 0,0.8)'
-  } else if (node.build_status == "rebuild") {
-    node.color = 'rgba(0, 255, 200 ,0.8)'
-  } else if (node.build_status == "not_installed") {
-    node.color = 'rgba(166,166,166,0.6)'
-  } else { // should not happen
-    node.color = 'rgba(255,0,0, 0.98)'
-  }
-
-  node.borderWidth = 15;
-  if (node.stability == 'stable') {
-//    node.color.border = '#66FF77'
-//    node.shapeProperties.borderDashes = false;
-  } else if (node.stability == 'test') {
-//    node.color.border = '#AAFF44'
-//    node.shapeProperties.borderDashes = false;
-    node.shapeProperties = {borderDashes: [8, 8]};
-  } else if (node.stability == 'live') {
-//    node.color.border = '#DDBB77'
-    node.shapeProperties = {borderDashes: [4, 12]};
-  } else if (node.stability == 'overlay-test') {
- //   node.color.border = '#FF9977'
-    node.shapeProperties = {borderDashes: [4, 28]};
-  } else if (node.stability == 'overlay-live') {
- //   node.color.border = 'FF4433'
-    node.shapeProperties = {borderDashes: [8, 24]};
-  }
-
+  setNodeStyle(node);
 }
 
 for(let edgeid in edgedata){
   let edge = edgedata[edgeid];
-  if (edge.dep == "DEPEND"){
-//      edge.color = 'rgba(120,255,100,0.8)'
-//      edge.dashes = [30, 2, 14, 2, 6, 2, 2, 2] //Dashed lines are too slow to draw 
-  } else if (edge.dep == "RDEPEND"){
-//      edge.color = 'rgba(64,255,200,0.8)'
-      edge.dashes = [48, 4, 12, 4, 4, 4]  
-  } else if (edge.dep == "PDEPEND"){
-//      edge.color = 'rgba(64,64,255,0.8)'  
-      edge.dashes = [40, 6, 10, 6, 2, 6, 2, 6]  
-  } else { // Should not happen, maybe BDEPEND later
-  //  edge.color = 'rgba(24,247,54,0.8)'  
-  }
+
+  setEdgeStyle(edge);
 }
 
 var nodes = new vis.DataSet(nodedata);
@@ -478,42 +417,10 @@ document.querySelector('#legend-btn').addEventListener('click', function(){
       improvedLayout: true
     };
     legend_options.physics = false;
+    const {nodes, edges} = makeLegendGraph();
     let legend = new vis.Network(document.querySelector("#legend_target"), {
-      nodes: [
-        {
-          id: "normal-legend",
-          label: "packages installed as dependencies",
-          level: 0,
-          group: "normal",
-          value: size2value(0),
-        },
-        {
-          id: "explicit-legend",
-          label: "packages installed explicitly",
-          level: 2,
-          group: "explicit",
-          value: size2value(0),
-        },
-        {
-          id: "group-legend",
-          label: "package groups",
-          level: 4,
-          group: "group",
-          value: size2value(0),
-        },
-        {
-          id: "vdep-legend",
-          label: "virtual dependencies (in provides)",
-          level: 6,
-          group: "vdep",
-          value: size2value(0),
-        },
-      ],
-      edges: [
-        { from: "normal-legend", to: "explicit-legend" },
-        { from: "explicit-legend", to: "group-legend" },
-        { from: "group-legend", to: "vdep-legend" },
-      ]
+      nodes,
+      edges,
     }, legend_options);
 
     legend.fit();
