@@ -61,9 +61,9 @@
       <div class="mdl-card__title mdl-card--expand" id="legend_panel"
            style="padding: 0 16px 16px 16px;">
            <div>
-             Legend below:
+             Legend:
            </div>
-           <div id="legend_target" style="width:100%; height:300px">
+           <div id="legend_target" style="width:100%; height:500px">
            </div>
       </div>
 
@@ -416,7 +416,19 @@ document.querySelector('#legend-btn').addEventListener('click', function(){
        },
       improvedLayout: true
     };
-    legend_options.physics = false;
+    legend_options.physics = {
+      hierarchicalRepulsion: {
+        nodeDistance: 300,
+        springLength: 0,
+        springConstant: .2,
+        damping: 0.1
+      },
+      timestep: 0.1,
+      stabilization: {
+        iterations: 100,
+        updateInterval: 1,
+      }
+    };
     const {nodes, edges} = makeLegendGraph();
     let legend = new vis.Network(document.querySelector("#legend_target"), {
       nodes,

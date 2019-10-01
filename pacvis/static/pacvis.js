@@ -306,73 +306,86 @@ function show_panel() {
 function makeLegendGraph() {
   const nodes = [
     {
-      id: 0,
-      label: "gentoo::world-file-package arch",
+      id: 50,
+      label: "world file package",
       level: 0,
       catagory: "explicit",
+      build_status: "keep",
+      stability: "overlay-live",
+      x: 0
+    },
+    {
+      id: 0,
+      label: "gentoo::pkg arch",
+      level: 2,
+      catagory: "normal",
       build_status: "keep",
       stability: "stable"
     },
     {
       id: 1,
-      label: "gentoo::world-file-package ~arch",
-      level: 1,
-      catagory: "explicit",
+      label: "gentoo::pkg ~arch",
+      level: 4,
+      catagory: "normal",
       build_status: "keep",
       stability: "test"
     },
     {
       id: 2,
-      label: "gentoo::world-file-package-9999",
-      level: 2,
-      catagory: "explicit",
+      label: "gentoo::pkg-9999",
+      level: 6,
+      catagory: "normal",
       build_status: "keep",
       stability: "live"
     },
     {
       id: 3,
-      label: "overlay::world-file-package ~arch",
-      level: 0,
-      catagory: "explicit",
+      label: "overlay::pkg ~arch",
+      level: 5,
+      catagory: "normal",
       build_status: "keep",
-      stability: "overlay-test"
+      stability: "overlay-test",
+      x: -100
     },
     {
       id: 4,
-      label: "overlay::world-file-package-9999",
-      level: 4,
-      catagory: "explicit",
+      label: "overlay::pkg-9999",
+      level: 3,
+      catagory: "normal",
       build_status: "keep",
-      stability: "overlay-live"
+      stability: "overlay-live",
+      x: 1000
     },
     {
       id: 11,
       label: "package to be installed",
-      level: 6,
-      catagory: "explicit",
+      level: 8,
+      catagory: "normal",
       build_status: "add",
-      stability: "stable"
+      stability: "stable",
+      x: 30
     },
     {
       id: 12,
       label: "package to be removed",
-      level: 7,
-      catagory: "explicit",
+      level: 0.5,
+      catagory: "normal",
       build_status: "remove",
-      stability: "stable"
+      stability: "stable",
+      x: 30
     },
     {
       id: 13,
       label: "package to be rebuilt",
-      level: 8,
-      catagory: "explicit",
+      level: 10,
+      catagory: "normal",
       build_status: "rebuild",
       stability: "stable"
     },
     {
       id: 20,
       label: "dependency",
-      level: 10,
+      level: 13,
       catagory: "normal",
       build_status: "keep",
       stability: "stable"
@@ -380,43 +393,58 @@ function makeLegendGraph() {
     {
       id: 21,
       label: "virtual dependency",
-      level: 10,
+      level: 8,
       catagory: "virtual",
       build_status: "keep",
-      stability: "stable"
+      stability: "stable",
+      x: -1
     },
     {
       id: 22,
       label: "@system dependency",
-      level: 11,
+      level: 14,
       catagory: "system",
       build_status: "keep",
-      stability: "stable"
+      stability: "stable",
     },
   ];
   const edges =  [
-    { from: 0, to: 20, label: "BDEPEND or DEPEND", dep: "DEPEND" },
-    { from: 1, to: 20, label: "RDEPEND", dep: "RDEPEND"  },
-    { from: 1, to: 21 },
-    { from: 2, to: 20, label: "PDEPEND", dep: "PDEPEND" },
-    { from: 3, to: 21 },
-    { from: 4, to: 22 },
+    { from: 50, to: 0},
+    { from: 50, to: 1},
+    { from: 50, to: 2},
+    { from: 50, to: 3},
+    { from: 50, to: 4},
+    { from: 1, to: 20, label: "PDEPEND", dep: "PDEPEND"  },
+    { from: 2, to: 20, label: "BDEPEND or DEPEND", dep: "DEPEND" },
+    { from: 11, to: 22 },
     { from: 5, to: 22 },
-    { from: 11, to: 21 },
-    { from: 12, to: 22 },
+    { from: 0, to: 21 },
     { from: 13, to: 22 },
-    { from: 21, to: 22, dep: "RDEPEND" },
-    { from: 0, to: 20 },
-    { from: 0, to: 20 },
+    { from: 21, to: 20, label: "RDEPEND",dep: "RDEPEND" },
+    { from: 12, to: 4 },
+    { from: 4, to: 11 },
+    { from: 3, to: 13 },
   ];
 
   for(let nodeid in nodes){
     let node = nodes[nodeid];
+    node.scaling = { label: 
+      {
+        min: 15,
+        drawThreshold: 1
+      }
+    };
     setNodeStyle(node);
   }
 
   for(let edgeid in edges) {
     let edge = edges[edgeid];
+    edge.scaling = { label: 
+      {
+        min: 15,
+        drawThreshold: 1
+      }
+    };
     setEdgeStyle(edge);
   }
 
