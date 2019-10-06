@@ -56,6 +56,17 @@ def ismergepkg(pkg):
     ismerge = isinstance(pkg, Package) and pkg.operation == 'merge'
     return ismerge
 
+def make_PkgInfo(pkg, dbinfo):
+    pkg_info = PkgInfo(pkg.cpv, dbinfo, merge=ismergepkg(pkg))
+    pkg_info.repo = pkg.repo
+    if '9999' in pkg.version: ## TODO XXXX correct way to do this?
+        pkg_info.stability = 'live'
+    elif pkg.stable:
+        pkg_info.stability = 'stable'
+    else:
+        pkg_info.stability = 'test'
+
+    return pkg_info
 
 def buildpkggraphforupdate(dbinfo, digraph, pkgfilter):
 
@@ -87,11 +98,11 @@ def buildpkggraphforupdate(dbinfo, digraph, pkgfilter):
                 child_pkg.add_priorities(priorities)
                 children.append(child_pkg)
                 if child_cpv not in atomsdict:
-                    atomsdict[child_cpv] = PkgInfo(child_cpv, dbinfo, merge=True)
+                    atomsdict[child_cpv] = make_PkgInfo(child, dbinfo)
         if (len(children) > 0) or pkgfilter(pkg):
             # add pkg if it has a child or passes the filter
             if pkg_cpv not in atomsdict:
-                atomsdict[pkg_cpv] = PkgInfo(pkg_cpv, dbinfo, merge=ismergepkg(pkg))
+                atomsdict[pkg_cpv] = make_PkgInfo(pkg, dbinfo)
 
             # add links between parent and child
             parent_pkg = atomsdict[pkg_cpv]
@@ -129,6 +140,7 @@ class PkgInfo:
         self.rev_rdepends = set()
         self.rev_pdepends = set()
         self.explicit = False
+        self.stability = ''
         self.groups = {}
         self.isize = 9999
         self.level = 1
@@ -136,7 +148,7 @@ class PkgInfo:
         self.name = name
         self.optdeps = []
         self.provides = []
-        self.repo = []
+        self.repo = ''
         self.requiredby =[]
         self.version = 3
         self._merge = merge

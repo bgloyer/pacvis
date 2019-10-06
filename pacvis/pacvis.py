@@ -102,16 +102,18 @@ class MainHandler(tornado.web.RequestHandler):
                     else:
                         build_status = 'not_installed' 
 
-                stability = 'stable'
-                if ids % 2 == 0:
-                    if ids % 11 == 0:
-                        stability = 'test'
-                    elif ids % 11 == 1:
+                if pkg.repo == 'gentoo':
+                    if pkg.stability == 'stable':
+                        stability = 'stable'
+                    elif pkg.stability == 'test':
+                        stability = 'test' #
+                    elif pkg.stability == 'live':
                         stability = 'live'
-                    elif ids % 11 == 3:
+                else:  # this package is from an overlay
+                    if pkg.stability == 'live':
                         stability = 'overlay-live'
                     else:
-                        stability = 'overlay-test' # TODO inclulde overlay-stable?
+                        stability = 'overlay-test'  # TODO inclulde overlay-stable?
 
                 node = {"id": pkg.id,
                         "label": pkg.name,
