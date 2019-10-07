@@ -81,17 +81,11 @@ class MainHandler(tornado.web.RequestHandler):
                     catagory = 'virtual'
                 elif pkg.is_set():
                     catagory = 'set'
-                elif catagory == "normal" and (ids % 4 == 0): #TODO temp
-                    if ids % 3 == 0:
-                        catagory = 'explicit'
-                    elif ids % 3 == 1:
-                        catagory = 'system'
-                    elif ids % 3 == 2:
-                        catagory = 'set'
-                
+
                 build_status = 'keep'
                 if pkg.needs_update():
                     build_status = 'update' # TODO XXXX show as remove then add?
+                '''
                 elif ids % 7 == 0:
                     if ids % 4 == 0:
                         build_status = 'add'
@@ -101,6 +95,7 @@ class MainHandler(tornado.web.RequestHandler):
                         build_status = 'rebuild'
                     else:
                         build_status = 'not_installed' 
+'''
 
                 if pkg.repo == 'gentoo':
                     if pkg.stability == 'stable':

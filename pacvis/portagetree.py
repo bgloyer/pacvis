@@ -57,25 +57,6 @@ def ismergepkg(pkg):
     return ismerge
 
 
-def is_member(pkg, atoms):
-    for atom in atoms:
-        if atom.match(pkg):
-            return True
-    return False
-
-def make_PkgInfo(pkg):
-    pkg_info = PkgInfo(pkg.cpv, merge=ismergepkg(pkg))
-    pkg_info.repo = pkg.repo
-    if '9999' in pkg.version: ## TODO XXXX correct way to do this?
-        pkg_info.stability = 'live'
-    elif pkg.stable:
-        pkg_info.stability = 'stable'
-    else:
-        pkg_info.stability = 'test'
-
-    return pkg_info
-
-
 class PkgInfo:
     def __init__(self, name, merge=False):
         self.desc = name
@@ -101,6 +82,7 @@ class PkgInfo:
         self.requiredby =[]
         self.version = 3
         self._merge = merge
+        self._is_system = False
 
     def find_dependencies(self, pkg):
         pass
@@ -110,7 +92,7 @@ class PkgInfo:
         return self.name.startswith("virtual/")
 
     def is_system(self):
-        return False
+        return self._is_system
 
     def is_set(self):
         return self.name.startswith("@")
@@ -173,6 +155,8 @@ class PortageTree:
         myparams = create_depgraph_params(myopts, "remove")
         mydepgraph = depgraph(settings, trees, myopts, myparams, None)
         mydepgraph._complete_graph()
+
+        self.trees = trees
         self.digraph = mydepgraph._dynamic_config.digraph
 ##        printDepgraph(mydepgraph)
         self.atoms = self.buildpkggraphforupdate(all_pkg_filter)
@@ -199,6 +183,7 @@ class PortageTree:
         #print(f'myparams {myparams}')
         mydepgraph = depgraph(settings, trees, myopts, myparams, None)
 
+        self.trees = trees
         self.digraph = mydepgraph._dynamic_config.digraph
         success, favorites = mydepgraph.select_files(myfiles)
 
@@ -226,8 +211,6 @@ class PortageTree:
                     self.rdep |= priority.runtime is True
                     self.pdep |= priority.runtime_post is True
 
-        #    system_atoms = trees['/'].data['root_config'].setconfig.psets['system']._atoms
-
         atomsdict = {}  # keeps packages as they are found
         for pkg in self.digraph.nodes:
             if not isinstance(pkg, Package):
@@ -242,11 +225,11 @@ class PortageTree:
                     child_pkg.add_priorities(priorities)
                     children.append(child_pkg)
                     if child_cpv not in atomsdict:
-                        atomsdict[child_cpv] = make_PkgInfo(child)
+                        atomsdict[child_cpv] = self.make_pkginfo(child)
             if (len(children) > 0) or pkgfilter(pkg):
                 # add pkg if it has a child or passes the filter
                 if pkg_cpv not in atomsdict:
-                    atomsdict[pkg_cpv] = make_PkgInfo(pkg)
+                    atomsdict[pkg_cpv] = self.make_pkginfo(pkg)
 
                 # add links between parent and child
                 parent_pkg = atomsdict[pkg_cpv]
@@ -268,6 +251,27 @@ class PortageTree:
                         child_pkg.rev_pdepends.add(pkg_cpv)
 
         return atomsdict.values()
+
+    def make_pkginfo(self, pkg):
+        pkg_info = PkgInfo(pkg.cpv, merge=ismergepkg(pkg))
+        pkg_info.repo = pkg.repo
+        if '9999' in pkg.version:  ## TODO XXXX correct way to do this?
+            pkg_info.stability = 'live'
+        elif pkg.stable:
+            pkg_info.stability = 'stable'
+        else:
+            pkg_info.stability = 'test'
+
+        # check if it is a system package
+        is_system = False
+        for system_atom in self.trees['/'].data['root_config'].setconfig.psets['system']._atoms:
+            if system_atom.match(pkg):
+                is_system = True;
+                break
+
+        pkg_info._is_system = is_system
+
+        return pkg_info
 
     def packages(self):
         return self.atoms
