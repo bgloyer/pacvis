@@ -61,9 +61,9 @@
       <div class="mdl-card__title mdl-card--expand" id="legend_panel"
            style="padding: 0 16px 16px 16px;">
            <div>
-             Legend below:
+             Legend:
            </div>
-           <div id="legend_target" style="width:100%; height:300px">
+           <div id="legend_target" style="width:100%; height:500px">
            </div>
       </div>
 
@@ -196,7 +196,9 @@
 
 var currentsize="{{ options.drawsize }}";
 
-var nodedata = {% raw nodes %};
+let nodedata = {% raw nodes %};
+
+let edgedata = {% raw links %};
 
 function wrapDeps(list){
   var depsdom = "";
@@ -219,12 +221,19 @@ for(let nodeid in nodedata){
   node.title = "<h4>" + node.label + "</h4>" +
     "<p>depends: [" + wrapDeps(node.deps) + "]</p>" +
     "<p>required by:[" + wrapDeps(node.reqs) +"]</p>";
-  node.value = size2value(node[currentsize]);
+  //node.value = size2value(node[currentsize]);
+  setNodeStyle(node);
+}
+
+for(let edgeid in edgedata){
+  let edge = edgedata[edgeid];
+
+  setEdgeStyle(edge);
 }
 
 var nodes = new vis.DataSet(nodedata);
 
-var edges = new vis.DataSet({% raw links %});
+var edges = new vis.DataSet(edgedata);
 
 // create a network
 var container = document.getElementById('target');
@@ -247,14 +256,14 @@ var physics = {
   }
 };
 var options = {
-  groups: {
-    standalone: { shape: 'square', color: 'rgba(100,100,255,0.8)', size: 12 },
-    normal: { shape: 'dot', color: 'rgba(255,171,64,0.8)'},
-    group: { shape: 'triangle', size: 12, color: 'rgba(76,175,80,0.8)'},
-    vdep: { shape: 'diamond', size: 12, color: 'rgba(205,220,57,0.8)'},
-    explicit: { shape: 'dot', color: 'rgba(103,58,183,0.8)'},
-    consolidated: { shape: 'star', color: 'rgba(255,0,0,0.8)', size: 12},
-  },
+//  groups: {
+//    standalone: { shape: 'square', size: 12 },
+//    normal: { shape: 'dot'},
+//    group: { shape: 'triangle', size: 12},
+//    vdep: { shape: 'diamond', size: 12},
+//    explicit: { shape: 'dot'},
+//    consolidated: { shape: 'star', size: 12},
+//  },
   nodes: {
     scaling: {
       min: 5,
@@ -342,7 +351,7 @@ function pacvis(){
     deselectPkg();
   });
   network.on("click", function(params){
-    neighbourhoodHighlight(params);
+    neighbourhoodHighlight(params.nodes);
   });
 
 }
@@ -407,43 +416,23 @@ document.querySelector('#legend-btn').addEventListener('click', function(){
        },
       improvedLayout: true
     };
-    legend_options.physics = false;
+    legend_options.physics = {
+      hierarchicalRepulsion: {
+        nodeDistance: 300,
+        springLength: 0,
+        springConstant: .2,
+        damping: 0.1
+      },
+      timestep: 0.1,
+      stabilization: {
+        iterations: 100,
+        updateInterval: 1,
+      }
+    };
+    const {nodes, edges} = makeLegendGraph();
     let legend = new vis.Network(document.querySelector("#legend_target"), {
-      nodes: [
-        {
-          id: "normal-legend",
-          label: "packages installed as dependencies",
-          level: 0,
-          group: "normal",
-          value: size2value(0),
-        },
-        {
-          id: "explicit-legend",
-          label: "packages installed explicitly",
-          level: 2,
-          group: "explicit",
-          value: size2value(0),
-        },
-        {
-          id: "group-legend",
-          label: "package groups",
-          level: 4,
-          group: "group",
-          value: size2value(0),
-        },
-        {
-          id: "vdep-legend",
-          label: "virtual dependencies (in provides)",
-          level: 6,
-          group: "vdep",
-          value: size2value(0),
-        },
-      ],
-      edges: [
-        { from: "normal-legend", to: "explicit-legend" },
-        { from: "explicit-legend", to: "group-legend" },
-        { from: "group-legend", to: "vdep-legend" },
-      ]
+      nodes,
+      edges,
     }, legend_options);
 
     legend.fit();

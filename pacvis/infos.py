@@ -26,8 +26,10 @@ class DbInfo:
         print_message("Repo_list repos: %s" % ", ".join(self.repo_list))
 
     def load_graph(self, emerge_args):
-        tree = PortageTree(self, emerge_args)
+        tree = PortageTree(emerge_args)
         self.packages = tree.packages()
+        for pkg_info in self.packages:
+            self.all_pkgs[pkg_info.name] = pkg_info
 
     def find_syncdb(self, pkgname):
         repo = ""

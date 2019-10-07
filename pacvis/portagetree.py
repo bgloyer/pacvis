@@ -1,4 +1,3 @@
-import gentoolkit
 import portage
 from portage import os
 
@@ -21,7 +20,7 @@ def printpkg(pkginfo):
     print(len(pkginfo.requiredby))
     print(pkginfo.requiredby)
 
-
+'''
 def buildpackagegraph(dbinfo, atoms, digraph, node):
     if isinstance(node, Package):
         nodename = node.cpv
@@ -49,6 +48,7 @@ def buildpackagegraph(dbinfo, atoms, digraph, node):
             child_pkg.explicit = selected
             child_pkg.requiredby.append(nodename)
     return pkg
+'''
 
 
 # returns true if this package can be merged (updated)
@@ -57,68 +57,9 @@ def ismergepkg(pkg):
     return ismerge
 
 
-def buildpkggraphforupdate(dbinfo, digraph, pkgfilter):
-
-    class ChildPkg:
-        """Holds a pacakge and the dependency types from its parent"""
-        def __init__(self, child):
-            self.pkg = child
-            self.dep = False
-            self.rdep = False
-            self.pdep = False
-
-        def add_priorities(self, priorities):
-            for priority in priorities:
-                self.dep |= priority.buildtime is True
-                self.rdep |= priority.runtime is True
-                self.pdep |= priority.runtime_post is True
-
-    atomsdict = {}  # keeps packages as they are found
-    for pkg in digraph.nodes:
-        if not isinstance(pkg, Package):
-            # skip non-packages like @selected
-            continue
-        pkg_cpv = pkg.cpv
-        children = []  # the list of children that meet the filter
-        for child, priorities in digraph.nodes[pkg][0].items():
-            if pkgfilter(child):
-                child_cpv = child.cpv
-                child_pkg = ChildPkg(child)
-                child_pkg.add_priorities(priorities)
-                children.append(child_pkg)
-                if child_cpv not in atomsdict:
-                    atomsdict[child_cpv] = PkgInfo(child_cpv, dbinfo, merge=True)
-        if (len(children) > 0) or pkgfilter(pkg):
-            # add pkg if it has a child or passes the filter
-            if pkg_cpv not in atomsdict:
-                atomsdict[pkg_cpv] = PkgInfo(pkg_cpv, dbinfo, merge=ismergepkg(pkg))
-
-            # add links between parent and child
-            parent_pkg = atomsdict[pkg_cpv]
-            for childpkg in children:
-                child_cpv = childpkg.pkg.cpv
-                # print(f'{pkg_cpv} -> {child_cpv}')
-                child_pkg = atomsdict[child_cpv]
-                parent_pkg.deps.append(child_cpv)
-                child_pkg.requiredby.append(pkg_cpv)
-                # add deps by type
-                if childpkg.dep:
-                    parent_pkg.depends.add(child_cpv)
-                    child_pkg.rev_depends.add(pkg_cpv)
-                if childpkg.rdep:
-                    parent_pkg.rdepends.add(child_cpv)
-                    child_pkg.rev_rdepends.add(pkg_cpv)
-                if childpkg.pdep:
-                    parent_pkg.pdepends.add(child_cpv)
-                    child_pkg.rev_pdepends.add(pkg_cpv)
-
-    return atomsdict.values()
-
-
 class PkgInfo:
-    def __init__(self, name, dbinfo, merge=False):
+    def __init__(self, name, merge=False):
         self.desc = name
-        dbinfo.all_pkgs[name] = self
         self.deps = []
 #        self.bdepends = set()
         self.depends = set()
@@ -129,6 +70,7 @@ class PkgInfo:
         self.rev_rdepends = set()
         self.rev_pdepends = set()
         self.explicit = False
+        self.stability = ''
         self.groups = {}
         self.isize = 9999
         self.level = 1
@@ -136,10 +78,11 @@ class PkgInfo:
         self.name = name
         self.optdeps = []
         self.provides = []
-        self.repo = []
+        self.repo = ''
         self.requiredby =[]
         self.version = 3
         self._merge = merge
+        self._is_system = False
 
     def find_dependencies(self, pkg):
         pass
@@ -147,6 +90,9 @@ class PkgInfo:
 
     def is_virtual(self):
         return self.name.startswith("virtual/")
+
+    def is_system(self):
+        return self._is_system
 
     def is_set(self):
         return self.name.startswith("@")
@@ -181,15 +127,15 @@ def printDepgraph(depgraph):
 
     
 class PortageTree:
-    def __init__(self, dbinfo, emerge_args):
+    def __init__(self, emerge_args):
 
         self.atoms = []
         if emerge_args is None or len(emerge_args) == 0:
             # show the installed packages
-            self.load_installed_graph(dbinfo)
+            self.load_installed_graph()
         else:
             # show the graph for 'emerge -p {emerge_args}'
-            self.load_update_graph(dbinfo, emerge_args)
+            self.load_update_graph(emerge_args)
         
         # sort the dependent packages
         for pkg in self.atoms:
@@ -198,7 +144,7 @@ class PortageTree:
 
     # load a graph like the one portage uses for a depclean.  It is
     # a graph of all installed packages
-    def load_installed_graph(self, dbinfo):
+    def load_installed_graph(self):
         def all_pkg_filter(pkg):
             return True
 
@@ -209,9 +155,11 @@ class PortageTree:
         myparams = create_depgraph_params(myopts, "remove")
         mydepgraph = depgraph(settings, trees, myopts, myparams, None)
         mydepgraph._complete_graph()
-        mydigraph = mydepgraph._dynamic_config.digraph
+
+        self.trees = trees
+        self.digraph = mydepgraph._dynamic_config.digraph
 ##        printDepgraph(mydepgraph)
-        self.atoms = buildpkggraphforupdate(dbinfo, mydigraph, all_pkg_filter)
+        self.atoms = self.buildpkggraphforupdate(all_pkg_filter)
 
         if len(self.atoms) == 0:
             # there are no packages to display so exit
@@ -222,7 +170,7 @@ class PortageTree:
          #   buildpackagegraph(dbinfo, self.atoms, mydigraph, rootnode)
 
     # load a graph the portage uses for updates
-    def load_update_graph(self, dbinfo, emerge_args):
+    def load_update_graph(self, emerge_args):
         args = emerge_args.split()
         portage._decode_argv(args)
         myaction, myopts, myfiles = parse_opts(args)
@@ -235,15 +183,95 @@ class PortageTree:
         #print(f'myparams {myparams}')
         mydepgraph = depgraph(settings, trees, myopts, myparams, None)
 
-        mydigraph = mydepgraph._dynamic_config.digraph
+        self.trees = trees
+        self.digraph = mydepgraph._dynamic_config.digraph
         success, favorites = mydepgraph.select_files(myfiles)
 
-        self.atoms = buildpkggraphforupdate(dbinfo, mydigraph, ismergepkg)
+        self.atoms = self.buildpkggraphforupdate(ismergepkg)
 
         if len(self.atoms) == 0:
             # there are no packages to display so exit
             mydepgraph.display_problems()
             raise RuntimeError("No packages to display")
+
+    def buildpkggraphforupdate(self, pkgfilter):
+
+        class ChildPkg:
+            """Holds a pacakge and the dependency types from its parent"""
+
+            def __init__(self, child):
+                self.pkg = child
+                self.dep = False
+                self.rdep = False
+                self.pdep = False
+
+            def add_priorities(self, priorities):
+                for priority in priorities:
+                    self.dep |= priority.buildtime is True
+                    self.rdep |= priority.runtime is True
+                    self.pdep |= priority.runtime_post is True
+
+        atomsdict = {}  # keeps packages as they are found
+        for pkg in self.digraph.nodes:
+            if not isinstance(pkg, Package):
+                # skip non-packages like @selected
+                continue
+            pkg_cpv = pkg.cpv
+            children = []  # the list of children that meet the filter
+            for child, priorities in self.digraph.nodes[pkg][0].items():
+                if pkgfilter(child):
+                    child_cpv = child.cpv
+                    child_pkg = ChildPkg(child)
+                    child_pkg.add_priorities(priorities)
+                    children.append(child_pkg)
+                    if child_cpv not in atomsdict:
+                        atomsdict[child_cpv] = self.make_pkginfo(child)
+            if (len(children) > 0) or pkgfilter(pkg):
+                # add pkg if it has a child or passes the filter
+                if pkg_cpv not in atomsdict:
+                    atomsdict[pkg_cpv] = self.make_pkginfo(pkg)
+
+                # add links between parent and child
+                parent_pkg = atomsdict[pkg_cpv]
+                for childpkg in children:
+                    child_cpv = childpkg.pkg.cpv
+                    # print(f'{pkg_cpv} -> {child_cpv}')
+                    child_pkg = atomsdict[child_cpv]
+                    parent_pkg.deps.append(child_cpv)
+                    child_pkg.requiredby.append(pkg_cpv)
+                    # add deps by type
+                    if childpkg.dep:
+                        parent_pkg.depends.add(child_cpv)
+                        child_pkg.rev_depends.add(pkg_cpv)
+                    if childpkg.rdep:
+                        parent_pkg.rdepends.add(child_cpv)
+                        child_pkg.rev_rdepends.add(pkg_cpv)
+                    if childpkg.pdep:
+                        parent_pkg.pdepends.add(child_cpv)
+                        child_pkg.rev_pdepends.add(pkg_cpv)
+
+        return atomsdict.values()
+
+    def make_pkginfo(self, pkg):
+        pkg_info = PkgInfo(pkg.cpv, merge=ismergepkg(pkg))
+        pkg_info.repo = pkg.repo
+        if '9999' in pkg.version:  ## TODO XXXX correct way to do this?
+            pkg_info.stability = 'live'
+        elif pkg.stable:
+            pkg_info.stability = 'stable'
+        else:
+            pkg_info.stability = 'test'
+
+        # check if it is a system package
+        is_system = False
+        for system_atom in self.trees['/'].data['root_config'].setconfig.psets['system']._atoms:
+            if system_atom.match(pkg):
+                is_system = True;
+                break
+
+        pkg_info._is_system = is_system
+
+        return pkg_info
 
     def packages(self):
         return self.atoms
