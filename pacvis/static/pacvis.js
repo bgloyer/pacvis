@@ -111,15 +111,15 @@ function createPkgListDom(list) {
 
 var highlightActive = false;
 
-function neighbourhoodHighlight(params) {
+function neighbourhoodHighlight(selectedNodes) {
     var nodesDataset = nodes;
     var edgesDataset = edges;
     var allNodes = nodedata;
     // if something is selected:
-    if (params.nodes.length > 0) {
+    if (selectedNodes.length > 0) {
       highlightActive = true;
       var i,j;
-      var selectedNode = params.nodes[0];
+      var selectedNode = selectedNodes[0];
       var degrees = 2;
 
       // mark all nodes as hard to read.
@@ -149,14 +149,14 @@ function neighbourhoodHighlight(params) {
 
       // all first degree nodes get their own color and their label back
       for (i = 0; i < connectedNodes.length; i++) {
-        allNodes[connectedNodes[i]].color = undefined;
+        setNodeStyle(allNodes[connectedNodes[i]]);
         if (allNodes[connectedNodes[i]].label === undefined) {
           allNodes[connectedNodes[i]].label = allNodes[connectedNodes[i]].hiddenLabel;
         }
       }
 
       // the main node gets its own color and its label back.
-      allNodes[selectedNode].color = undefined;
+      setNodeStyle(allNodes[selectedNode]);
       if (allNodes[selectedNode].label === undefined) {
         allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
       }
@@ -253,6 +253,7 @@ function selectAndUnhidePkg(node){
             animation : {duration : 300}
         });
     }
+    neighbourhoodHighlight([node.id]);
 }
 
 function trysearch() {
