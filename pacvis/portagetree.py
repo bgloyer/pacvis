@@ -156,6 +156,9 @@ class PortageTree:
         mydepgraph = depgraph(settings, trees, myopts, myparams, None)
         mydepgraph._complete_graph()
 
+        self.selected_packages = WorldSelectedPackagesSet(settings["EROOT"])
+        self.selected_packages.load()
+
         self.trees = trees
         self.digraph = mydepgraph._dynamic_config.digraph
 ##        printDepgraph(mydepgraph)
@@ -182,6 +185,9 @@ class PortageTree:
         myparams = create_depgraph_params(myopts, "regen")
         #print(f'myparams {myparams}')
         mydepgraph = depgraph(settings, trees, myopts, myparams, None)
+
+        self.selected_packages = WorldSelectedPackagesSet(settings["EROOT"])
+        self.selected_packages.load()
 
         self.trees = trees
         self.digraph = mydepgraph._dynamic_config.digraph
@@ -264,12 +270,16 @@ class PortageTree:
 
         # check if it is a system package
         is_system = False
-        for system_atom in self.trees['/'].data['root_config'].setconfig.psets['system']._atoms:
+
+        for system_atom in self.trees[self.trees._target_eroot].data['root_config'].setconfig.psets['system']._atoms:
             if system_atom.match(pkg):
                 is_system = True;
                 break
-
         pkg_info._is_system = is_system
+
+        # check to see if the package is a @selected package
+        if self.selected_packages.containsCPV(pkg.cpv):
+            pkg_info.explicit = True
 
         return pkg_info
 
