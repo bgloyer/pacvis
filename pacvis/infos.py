@@ -23,8 +23,6 @@ class DbInfo:
         self.repo_list.append(local)
         self.repos[local] = RepoInfo(local, self)
 
-        print_message("Repo_list repos: %s" % ", ".join(self.repo_list))
-
     def load_graph(self, emerge_args):
         tree = PortageTree(emerge_args)
         self.packages = tree.packages()
@@ -383,12 +381,12 @@ class DbInfo:
     def calcSizes(self):
         if len(self.all_pkgs.values()) == 0:
             return
-        start_message("Calculating csize ... ")
+#        start_message("Calculating csize ... ")
         maxCSize = max(self.calcCSize(pkg) for pkg in self.all_pkgs.values())
-        append_message(" max cSize: " + str(maxCSize))
-        start_message("Calculating cssize ... ")
+#        append_message(" max cSize: " + str(maxCSize))
+#       start_message("Calculating cssize ... ")
         maxCsSize = max(self.calcCsSize(pkg) for pkg in self.all_pkgs.values())
-        append_message(" max csSize: " + str(maxCsSize))
+#        append_message(" max csSize: " + str(maxCsSize))
 
     def requirement2pkgname(self, requirement):
         if any(x in requirement for x in "<=>"):
