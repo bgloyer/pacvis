@@ -79,7 +79,10 @@ function setEdgeStyle(edge){
       edge.dashes = [48, 4, 12, 4, 4, 4]  
   } else if (edge.dep == "PDEPEND"){
 //      edge.color = 'rgba(64,64,255,0.8)'  
-      edge.dashes = [40, 6, 10, 6, 2, 6, 2, 6]  
+      edge.dashes = [36, 10, 10, 6, 2, 6, 2, 6]  
+  } else if (edge.dep == "CP_PEER") {
+      edge.arrows = {to: {enabled: false}};
+      edge.width = 5;
   } else { // Should not happen, maybe BDEPEND later
   //  edge.color = 'rgba(24,247,54,0.8)'  
   }

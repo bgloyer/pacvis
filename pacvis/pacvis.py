@@ -74,28 +74,15 @@ class MainHandler(tornado.web.RequestHandler):
             if pkg.level < args.maxlevel:
                 catagory = "normal"
                 if pkg.explicit:
-                    catagory = 'explicit' # selected
-                elif pkg.is_system(): # TODO XXXX
+                    catagory = 'explicit' # @selected set
+                elif pkg.is_system():
                     catagory = 'system'
                 elif pkg.is_virtual():
                     catagory = 'virtual'
                 elif pkg.is_set():
                     catagory = 'set'
 
-                build_status = 'keep'
-                if pkg.needs_update():
-                    build_status = 'update' # TODO XXXX show as remove then add?
-                '''
-                elif ids % 7 == 0:
-                    if ids % 4 == 0:
-                        build_status = 'add'
-                    elif ids % 4 == 1:
-                        build_status = 'remove'
-                    elif ids % 4 == 3:
-                        build_status = 'rebuild'
-                    else:
-                        build_status = 'not_installed' 
-'''
+                build_status = pkg.build_status
 
                 if pkg.repo == 'gentoo':
                     if pkg.stability == 'stable':
@@ -133,11 +120,7 @@ class MainHandler(tornado.web.RequestHandler):
                 # add edges between the node according to the dep type.  Only
                 # add the strongest edge if there is more than one between two nodes
                 added_deps = set() # to avoid adding two links between the same pair
-                if len(pkg.deps) == 0 and len(pkg.requiredby) == 0:
-                    links.append({"id": ids,
-                                  "from": pkg.id,
-                                  "to": 0})
-                    ids += 1
+
                 for dep in pkg.depends:
                     link = {"id": ids,
                             "from": pkg.id,
@@ -167,6 +150,14 @@ class MainHandler(tornado.web.RequestHandler):
                             "from": pkg.id,
                             "to": dbinfo.get(dep).id,
                             "dep": 'PDEPEND'}
+                    links.append(link)
+                    ids += 1
+
+                if pkg.cp_peer is not None:
+                    link = {"id": ids,
+                            "from": pkg.id,
+                            "to": dbinfo.get(pkg.cp_peer).id,
+                            "dep": 'CP_PEER'}
                     links.append(link)
                     ids += 1
 

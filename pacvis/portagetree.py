@@ -1,5 +1,6 @@
 import portage
 from portage import os
+from portage import cpv_getkey
 
 from _emerge.depgraph import backtrack_depgraph, depgraph, resume_depgraph
 from _emerge.actions import load_emerge_config
@@ -58,10 +59,11 @@ def ismergepkg(pkg):
 
 
 class PkgInfo:
-    def __init__(self, name, merge=False):
+    def __init__(self, name, build_status='keep'): #XXXX remove merge
         self.desc = name
         self.deps = []
 #        self.bdepends = set()
+        self.cp_peer = None
         self.depends = set()
         self.rdepends = set()
         self.pdepends = set()
@@ -81,7 +83,7 @@ class PkgInfo:
         self.repo = ''
         self.requiredby =[]
         self.version = 3
-        self._merge = merge
+        self.build_status = build_status
         self._is_system = False
 
     def find_dependencies(self, pkg):
@@ -97,9 +99,6 @@ class PkgInfo:
     def is_set(self):
         return self.name.startswith("@")
 
-    def needs_update(self):
-        return self._merge
-    
 
 def printDepgraph(depgraph):
     print('depgraph:')
@@ -129,16 +128,18 @@ def printDepgraph(depgraph):
 class PortageTree:
     def __init__(self, emerge_args):
 
-        self.atoms = []
+        self.atoms = {}
         if emerge_args is None or len(emerge_args) == 0:
             # show the installed packages
             self.load_installed_graph()
         else:
             # show the graph for 'emerge -p {emerge_args}'
             self.load_update_graph(emerge_args)
-        
+
+        self.add_slot_connections()
+
         # sort the dependent packages
-        for pkg in self.atoms:
+        for pkg in self.atoms.values():
             pkg.deps.sort()
             pkg.requiredby.sort()
 
@@ -159,7 +160,7 @@ class PortageTree:
         self.selected_packages = WorldSelectedPackagesSet(settings["EROOT"])
         self.selected_packages.load()
 
-        self.trees = trees
+        self.root_config = trees[trees._target_eroot].data['root_config']
         self.digraph = mydepgraph._dynamic_config.digraph
 ##        printDepgraph(mydepgraph)
         self.atoms = self.buildpkggraphforupdate(all_pkg_filter)
@@ -189,7 +190,7 @@ class PortageTree:
         self.selected_packages = WorldSelectedPackagesSet(settings["EROOT"])
         self.selected_packages.load()
 
-        self.trees = trees
+        self.root_config = trees[trees._target_eroot].data['root_config']
         self.digraph = mydepgraph._dynamic_config.digraph
         success, favorites = mydepgraph.select_files(myfiles)
 
@@ -256,10 +257,49 @@ class PortageTree:
                         parent_pkg.pdepends.add(child_cpv)
                         child_pkg.rev_pdepends.add(pkg_cpv)
 
-        return atomsdict.values()
+        return atomsdict
+
+    # connect packages that have the same cp name.  also add the old versions of updated packages
+    def add_slot_connections(self):
+        cp_dict = {}
+        for cpv in self.atoms.keys():
+            cp = cpv_getkey(cpv)
+            if cp in cp_dict.keys():
+                cp_dict[cp].add(cpv)
+            else:
+                cp_dict[cp] = set([cpv])
+
+        # check all of the currently installed to see the old versions that are being upgraded
+        installed_pkgs = self.root_config.setconfig.psets['installed']._db._aux_cache["packages"].keys()
+        for installed_cpv in installed_pkgs:
+            installed_cp = cpv_getkey(installed_cpv)
+            if installed_cp in cp_dict:
+                if installed_cpv not in cp_dict[installed_cp]:
+                    # installed_cpv has changed to a different version add this atom
+                    # and mark it as remove
+                    removed_pkg = PkgInfo(installed_cpv, 'remove')
+                    removed_pkg.stability = 'stable' # draw all removed ones as stable for now
+                    removed_pkg.repo = 'gentoo'
+                    cp_dict[installed_cp].add(installed_cpv)
+                    self.atoms[installed_cpv] = removed_pkg
+
+        # find all of the packages that have the same cp (catagory/package) and link them
+        for cpv_set in cp_dict.values():
+            prev_cpv = None
+            for cpv in cpv_set:
+                if prev_cpv is not None:
+                    # connected the slotted packages TODO XXXX sort them by version?
+                    self.atoms[prev_cpv].cp_peer = cpv
+                prev_cpv = cpv
 
     def make_pkginfo(self, pkg):
-        pkg_info = PkgInfo(pkg.cpv, merge=ismergepkg(pkg))
+        build_status = 'keep'
+        if ismergepkg(pkg):
+            build_status = 'add'
+        ## XXXX TODO 'rebuild' and 'not_installed'
+
+        pkg_info = PkgInfo(pkg.cpv, build_status)
+
         pkg_info.repo = pkg.repo
         if '9999' in pkg.version:  ## TODO XXXX correct way to do this?
             pkg_info.stability = 'live'
@@ -271,7 +311,7 @@ class PortageTree:
         # check if it is a system package
         is_system = False
 
-        for system_atom in self.trees[self.trees._target_eroot].data['root_config'].setconfig.psets['system']._atoms:
+        for system_atom in self.root_config.setconfig.psets['system']._atoms:
             if system_atom.match(pkg):
                 is_system = True;
                 break

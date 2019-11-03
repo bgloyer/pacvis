@@ -13,7 +13,7 @@ class DbInfo:
         self.handle = {} #pycman.config.init_with_config("/etc/pacman.conf")
         self.localdb = {"xxxxx"} #self.handle.get_localdb()
         self.syncdbs = {} #self.handle.get_syncdbs()
-        self.packages = {}  #{PkgInfo("pppp", "dbinfo") } #self.localdb.pkgcache
+#        self.packages = {}  #{PkgInfo("pppp", "dbinfo") } #self.localdb.pkgcache
         self.all_pkgs = {}
         self.groups = {}
         self.repos = {}
@@ -25,9 +25,7 @@ class DbInfo:
 
     def load_graph(self, emerge_args):
         tree = PortageTree(emerge_args)
-        self.packages = tree.packages()
-        for pkg_info in self.packages:
-            self.all_pkgs[pkg_info.name] = pkg_info
+        self.all_pkgs = tree.packages()
 
     def find_syncdb(self, pkgname):
         repo = ""
@@ -46,7 +44,7 @@ class DbInfo:
 
     def get(self, pkgname):
         return self.all_pkgs[pkgname]
-
+    '''
     def resolve_dependency(self, dep):
         pkgname = self.requirement2pkgname(dep)
         if dep in self.all_pkgs:
@@ -58,6 +56,7 @@ class DbInfo:
 
     def find_all(self, showallvdeps):
         return self.all_pkgs
+'''
 
     '''
         for pkg in self.packages:
@@ -256,6 +255,11 @@ class DbInfo:
         self.compress_down()
         self.adjust_up()
 
+        # put removed packages at the same level as the upgrade
+        for pkg in self.all_pkgs.values():
+            if pkg.cp_peer is not None:
+                pkg.level = self.get(pkg.cp_peer).level - 1
+
     # move all the nodes down to the level above its highest dep
     def compress_down(self):
         sorted_pkgs = sorted(self.all_pkgs, key=lambda pkg: self.get(pkg).level, reverse=True)
@@ -403,46 +407,6 @@ class DbInfo:
         self.all_pkgs[pkg].requiredby.append(name)
         return name
 
-"""
-class PkgInfo:
-    def __init__(self, name, dbinfo):
-        self.name = name
-        self.pkg = "XxXx" #dbinfo.localdb.get_pkg(name)
-        dbinfo.all_pkgs[name] = self
-        self.deps = []
-        self.requiredby = []
-        self.optdeps = []
-        self.level = 1
-        self.circledeps = []
-        self.explicit = 0 == 0 #self.pkg.reason == 0
-        self.isize = 56565 #self.pkg.isize
-        self.desc = "desc" #self.pkg.desc
-        self.version = "v1" #self.pkg.version
-        self.repo = "pkginfoRepo" #dbinfo.find_syncdb(self.name)
-        self.groups = {} #self.pkg.groups
-        self.provides = [] # [dbinfo.find_vdep(pro, self.name)
-##                         for pro in self.pkg.provides]
-        for grp in self.groups:
-            if grp in dbinfo.groups:
-                dbinfo.groups[grp].add_pkg(self.name)
-            else:
-                GroupInfo(grp, dbinfo)
-                dbinfo.groups[grp].add_pkg(self.name)
-
-    def find_dependencies(self, dbinfo):
-        pass
-#        for dep in self.pkg.depends:
-#            dependency = dbinfo.resolve_dependency(dep)
-#            if dependency in dbinfo.all_pkgs:
-#                self.deps.append(dependency)
-#                dbinfo.get(dependency).requiredby.append(self.name)
-#        for dep in self.pkg.optdepends:
-#            depname = dep.split(":")[0]
-#            resolved = dbinfo.resolve_dependency(depname)
-#            if resolved is not None:
-#                self.optdeps.append(resolved)
-        # self.requiredby.extend(self.pkg.compute_requiredby())
-"""
 
 class GroupInfo (PkgInfo):
     def __init__(self, name, dbinfo):
