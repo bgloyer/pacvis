@@ -260,6 +260,8 @@ class DbInfo:
             if pkg.cp_peer is not None:
                 pkg.level = self.get(pkg.cp_peer).level - 1
 
+        self.limit_graph_width()
+
     # move all the nodes down to the level above its highest dep
     def compress_down(self):
         sorted_pkgs = sorted(self.all_pkgs, key=lambda pkg: self.get(pkg).level, reverse=True)
@@ -297,6 +299,25 @@ class DbInfo:
         shift = self.get(min(sorted_pkgs, key=lambda x: self.get(x).level)).level - 1
         for pkg_name in sorted_pkgs:
             self.get(pkg_name).level -= shift
+
+    # limit the number of package on a level to make it look better
+    def limit_graph_width(self):
+        sorted_pkgs = sorted(self.all_pkgs, key=lambda pkg: self.get(pkg).level)
+        max_per_level = 1 + (len(sorted_pkgs) ** .75) / 8.0 # allow bigger graphs to be wider
+        level_adjustment = 0
+        last_level = -1
+        level_count = 0
+        for pkg_name in sorted_pkgs:
+            pkg = self.get(pkg_name)
+            if pkg.level != last_level:
+                level_count = 0
+                last_level = pkg.level
+            else:
+                level_count += 1
+            if level_count > max_per_level:
+                level_adjustment += 1
+                level_count = 0
+            pkg.level += level_adjustment
 
     # adjust some packages up to make it look better
     def adjust_up(self):
