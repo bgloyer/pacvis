@@ -21,12 +21,12 @@ class MainHandler(tornado.web.RequestHandler):
         # load the package database
         dbinfo = DbInfo()
         start_message("Loading local database ...")
-        dbinfo.find_all(False)
-        append_message("done")
-        start_message("Finding all dependency circles ... ")
-        dbinfo.find_circles()
-        append_message("done")
         dbinfo.load_graph(emerge_args)
+#        dbinfo.find_all(False)
+        append_message("done")
+#        start_message("Finding all dependency circles ... ")
+#        dbinfo.find_circles()
+#        append_message("done")
         cls.dbinfo = dbinfo
 
     def parse_args(self, **kargs):
@@ -39,11 +39,11 @@ class MainHandler(tornado.web.RequestHandler):
                 result[key] = self.get_argument(key, defvalue) != "False"
             else:
                 result[key] = self.get_argument(key, defvalue)
-            print_message("get arg %r: %r" % (key, result[key]))
+#            print_message("get arg %r: %r" % (key, result[key]))
         return result
 
     def get(self):
-        print_message("\n" + str(self.request))
+ #       print_message("\n" + str(self.request))
         args = SimpleNamespace(**self.parse_args(
             maxlevel=1000,
             maxreqs=1000,
@@ -61,41 +61,28 @@ class MainHandler(tornado.web.RequestHandler):
         dbinfo.topology_sort(args.usemagic, args.aligntop, args.byrepos)
         dbinfo.calcSizes()
 
-        start_message("Rendering ... ")
+#        start_message("Rendering ... ")
 
         nodes = []
         links = []
 
         ids = 0
         for pkg in sorted(dbinfo.all_pkgs.values(), key=lambda x: x.level):
-            append_message("%s" % pkg.name)
+#            append_message("%s" % pkg.name)
             pkg.id = ids
             ids += 1
             if pkg.level < args.maxlevel:
                 catagory = "normal"
                 if pkg.explicit:
-                    catagory = 'explicit' # selected
-                elif pkg.is_system(): # TODO XXXX
+                    catagory = 'explicit' # @selected set
+                elif pkg.is_system():
                     catagory = 'system'
                 elif pkg.is_virtual():
                     catagory = 'virtual'
                 elif pkg.is_set():
                     catagory = 'set'
 
-                build_status = 'keep'
-                if pkg.needs_update():
-                    build_status = 'update' # TODO XXXX show as remove then add?
-                '''
-                elif ids % 7 == 0:
-                    if ids % 4 == 0:
-                        build_status = 'add'
-                    elif ids % 4 == 1:
-                        build_status = 'remove'
-                    elif ids % 4 == 3:
-                        build_status = 'rebuild'
-                    else:
-                        build_status = 'not_installed' 
-'''
+                build_status = pkg.build_status
 
                 if pkg.repo == 'gentoo':
                     if pkg.stability == 'stable':
@@ -133,11 +120,7 @@ class MainHandler(tornado.web.RequestHandler):
                 # add edges between the node according to the dep type.  Only
                 # add the strongest edge if there is more than one between two nodes
                 added_deps = set() # to avoid adding two links between the same pair
-                if len(pkg.deps) == 0 and len(pkg.requiredby) == 0:
-                    links.append({"id": ids,
-                                  "from": pkg.id,
-                                  "to": 0})
-                    ids += 1
+
                 for dep in pkg.depends:
                     link = {"id": ids,
                             "from": pkg.id,
@@ -167,6 +150,14 @@ class MainHandler(tornado.web.RequestHandler):
                             "from": pkg.id,
                             "to": dbinfo.get(dep).id,
                             "dep": 'PDEPEND'}
+                    links.append(link)
+                    ids += 1
+
+                if pkg.cp_peer is not None:
+                    link = {"id": ids,
+                            "from": pkg.id,
+                            "to": dbinfo.get(pkg.cp_peer).id,
+                            "dep": 'CP_PEER'}
                     links.append(link)
                     ids += 1
 
