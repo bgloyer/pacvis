@@ -167,7 +167,7 @@ function neighbourhoodHighlight(selectedNodes) {
     else if (highlightActive === true) {
       // reset all nodes
       for (var nodeId in allNodes) {
-        allNodes[nodeId].color = undefined;
+        setNodeStyle(allNodes[nodeId])
         if (allNodes[nodeId].label === undefined) {
           allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
         }
