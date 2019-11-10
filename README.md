@@ -14,4 +14,4 @@ Then go to http://localhost:8888/ .
 
 ## Running in Gentoo
 
-Pacvis is availible in the GURU overlay.  See https://wiki.gentoo.org/wiki/Pacvis.
+Pacvis is available in the GURU overlay.  See https://wiki.gentoo.org/wiki/Pacvis.
